@@ -34,9 +34,9 @@ class NvdbDataProducer(
 
     /**
      * Scheduled task that periodically fetches speed limits from NVDB and produces to Kafka.
-     * Runs every hour by default.
+     * Uses fixedRate for more predictable scheduling (runs every hour by default).
      */
-    @Scheduled(fixedDelayString = "\${nvdb.producer.interval-ms:3600000}")
+    @Scheduled(fixedRateString = "\${nvdb.producer.interval-ms:3600000}")
     fun fetchAndProduceSpeedLimits() {
         if (!producerEnabled) {
             logger.debug("NVDB producer is disabled")
@@ -54,7 +54,7 @@ class NvdbDataProducer(
                 logger.info("Completed fetching and producing speed limits")
             }
             .doOnError { error ->
-                logger.error("Error fetching speed limits: {}", error.message)
+                logger.error("Error fetching speed limits: {} - {}", error.javaClass.simpleName, error.message, error)
             }
             .subscribe()
     }
