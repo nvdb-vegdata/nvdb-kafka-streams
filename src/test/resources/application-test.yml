@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: kafka-at-home-test
+
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9093}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: kafka-at-home-test-consumer
+      auto-offset-reset: earliest
+    streams:
+      bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9093}
+      application-id: kafka-at-home-streams-test
+
+nvdb:
+  api:
+    base-url: https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/
+  producer:
+    enabled: false
+    batch-size: 10
+    interval-ms: 3600000
+
+kafka:
+  topics:
+    input: nvdb-vegobjekter-raw
+    output: nvdb-vegobjekter-transformed
+    speedlimits: nvdb-fartsgrenser
+
+logging:
+  level:
+    root: WARN
+    no.geirsagberg.kafkaathome: DEBUG

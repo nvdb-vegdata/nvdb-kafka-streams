@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: kafka-at-home
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      group-id: kafka-at-home-consumer
+      auto-offset-reset: earliest
+    streams:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+      application-id: kafka-at-home-streams
+      properties:
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# NVDB API Configuration
+nvdb:
+  api:
+    base-url: ${NVDB_API_BASE_URL:https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/}
+  producer:
+    enabled: ${NVDB_PRODUCER_ENABLED:false}
+    batch-size: ${NVDB_PRODUCER_BATCH_SIZE:100}
+    interval-ms: ${NVDB_PRODUCER_INTERVAL_MS:3600000}
+
+# Kafka Topics Configuration
+kafka:
+  topics:
+    input: nvdb-vegobjekter-raw
+    output: nvdb-vegobjekter-transformed
+    speedlimits: nvdb-fartsgrenser
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    no.geirsagberg.kafkaathome: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: INFO
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+
+# Management/Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,kafka
+  endpoint:
+    health:
+      show-details: always
