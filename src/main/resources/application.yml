@@ -29,6 +29,9 @@ nvdb:
     enabled: ${NVDB_PRODUCER_ENABLED:false}
     batch-size: ${NVDB_PRODUCER_BATCH_SIZE:100}
     interval-ms: ${NVDB_PRODUCER_INTERVAL_MS:3600000}
+  enrichment:
+    enabled: ${NVDB_ENRICHMENT_ENABLED:false}
+    batch-size: ${NVDB_ENRICHMENT_BATCH_SIZE:1000}
 
 # Kafka Topics Configuration
 kafka:

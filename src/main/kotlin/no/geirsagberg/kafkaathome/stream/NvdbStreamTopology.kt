@@ -2,6 +2,7 @@ package no.geirsagberg.kafkaathome.stream
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.geirsagberg.kafkaathome.model.Vegobjekt
+import no.geirsagberg.kafkaathome.service.GeometryEnrichmentService
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.kstream.Consumed
@@ -14,7 +15,7 @@ import org.springframework.context.annotation.Configuration
 
 /**
  * Kafka Streams topology for processing NVDB road data.
- * 
+ *
  * This topology:
  * 1. Consumes raw road object data from the input topic
  * 2. Transforms the data (e.g., extracts speed limits, enriches with geometry)
@@ -22,22 +23,26 @@ import org.springframework.context.annotation.Configuration
  */
 @Configuration
 class NvdbStreamTopology(
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val geometryEnrichmentService: GeometryEnrichmentService
 ) {
     private val logger = LoggerFactory.getLogger(NvdbStreamTopology::class.java)
 
-    @Value("\${kafka.topics.input:nvdb-vegobjekter-raw}")
+    @Value($$"${kafka.topics.input:nvdb-vegobjekter-raw}")
     private lateinit var inputTopic: String
 
-    @Value("\${kafka.topics.output:nvdb-vegobjekter-transformed}")
+    @Value($$"${kafka.topics.output:nvdb-vegobjekter-transformed}")
     private lateinit var outputTopic: String
 
-    @Value("\${kafka.topics.speedlimits:nvdb-fartsgrenser}")
+    @Value($$"${kafka.topics.speedlimits:nvdb-fartsgrenser}")
     private lateinit var speedLimitsTopic: String
+
+    @Value($$"${nvdb.enrichment.enabled:false}")
+    private var enrichmentEnabled: Boolean = false
 
     @Bean
     fun nvdbStreamsTopology(streamsBuilder: StreamsBuilder): KStream<String, String> {
-        logger.info("Building NVDB Kafka Streams topology")
+        logger.info("Building NVDB Kafka Streams topology (enrichment: {})", enrichmentEnabled)
 
         // Consume raw road object data
         val inputStream: KStream<String, String> = streamsBuilder.stream(
@@ -48,7 +53,16 @@ class NvdbStreamTopology(
         // Transform and filter the data
         val transformedStream = inputStream
             .peek { key, value -> logger.debug("Processing record with key: {}", key) }
-            .mapValues { value -> transformVegobjekt(value) }
+            .mapValues { value -> parseVegobjekt(value) }
+            .filter { _, vegobjekt -> vegobjekt != null }
+            .mapValues { vegobjekt ->
+                if (enrichmentEnabled) {
+                    geometryEnrichmentService.enrichWithGeometry(vegobjekt!!)
+                } else {
+                    vegobjekt!!
+                }
+            }
+            .mapValues { vegobjekt -> transformVegobjekt(vegobjekt) }
             .filter { _, value -> value != null }
             .mapValues { value -> value!! }
 
@@ -72,13 +86,22 @@ class NvdbStreamTopology(
     }
 
     /**
-     * Transform a raw road object JSON into an enriched format.
+     * Parse JSON to Vegobjekt.
      */
-    private fun transformVegobjekt(jsonValue: String): String? {
+    private fun parseVegobjekt(jsonValue: String): Vegobjekt? {
         return try {
-            val vegobjekt = objectMapper.readValue(jsonValue, Vegobjekt::class.java)
-            
-            // Create enriched data structure
+            objectMapper.readValue(jsonValue, Vegobjekt::class.java)
+        } catch (e: Exception) {
+            logger.warn("Failed to parse vegobjekt: {}", e.message)
+            null
+        }
+    }
+
+    /**
+     * Transform a vegobjekt into an enriched format.
+     */
+    private fun transformVegobjekt(vegobjekt: Vegobjekt): String? {
+        return try {
             val enriched = mapOf(
                 "id" to vegobjekt.id,
                 "typeId" to vegobjekt.typeId,
@@ -90,7 +113,7 @@ class NvdbStreamTopology(
                 "sistEndret" to vegobjekt.sistEndret,
                 "processedAt" to System.currentTimeMillis()
             )
-            
+
             objectMapper.writeValueAsString(enriched)
         } catch (e: Exception) {
             logger.warn("Failed to transform vegobjekt: {}", e.message)

@@ -153,7 +153,10 @@ data class Stedfesting(
     val type: String? = null,
 
     @JsonProperty("veglenkesekvensider")
-    val veglenkesekvensider: List<VeglenkeStedfesting>? = null
+    val veglenkesekvensider: List<VeglenkeStedfesting>? = null,
+
+    @JsonProperty("geometries")
+    val geometries: List<String>? = null
 )
 
 /**
