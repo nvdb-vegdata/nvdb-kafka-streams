@@ -26,22 +26,27 @@ class NvdbController(
     fun fetchSpeedLimits(
         @RequestParam(defaultValue = "100") count: Int
     ): Mono<ResponseEntity<FetchResponse>> {
-        return nvdbDataProducer?.fetchAndProduceVegobjekter(
-            NvdbApiClient.TYPE_FARTSGRENSE,
-            count
-        )?.map { total ->
-            ResponseEntity.ok(FetchResponse(
+        return if (nvdbDataProducer != null) {
+            Mono.fromCallable {
+                val total = nvdbDataProducer.fetchAndProduceVegobjekter(
+                    NvdbApiClient.TYPE_FARTSGRENSE,
+                    count
+                )
+                ResponseEntity.ok(FetchResponse(
+                    typeId = NvdbApiClient.TYPE_FARTSGRENSE,
+                    typeName = "Fartsgrense (Speed Limits)",
+                    count = total.toInt(),
+                    status = "success"
+                ))
+            }
+        } else {
+            Mono.just(ResponseEntity.status(503).body(FetchResponse(
                 typeId = NvdbApiClient.TYPE_FARTSGRENSE,
                 typeName = "Fartsgrense (Speed Limits)",
-                count = total.toInt(),
-                status = "success"
-            ))
-        } ?: Mono.just(ResponseEntity.status(503).body(FetchResponse(
-            typeId = NvdbApiClient.TYPE_FARTSGRENSE,
-            typeName = "Fartsgrense (Speed Limits)",
-            count = 0,
-            status = "producer disabled"
-        )))
+                count = 0,
+                status = "producer disabled"
+            )))
+        }
     }
 
     /**
@@ -55,20 +60,24 @@ class NvdbController(
         @PathVariable typeId: Int,
         @RequestParam(defaultValue = "100") count: Int
     ): Mono<ResponseEntity<FetchResponse>> {
-        return nvdbDataProducer?.fetchAndProduceVegobjekter(typeId, count)
-            ?.map { total ->
+        return if (nvdbDataProducer != null) {
+            Mono.fromCallable {
+                val total = nvdbDataProducer.fetchAndProduceVegobjekter(typeId, count)
                 ResponseEntity.ok(FetchResponse(
                     typeId = typeId,
                     typeName = getTypeName(typeId),
                     count = total.toInt(),
                     status = "success"
                 ))
-            } ?: Mono.just(ResponseEntity.status(503).body(FetchResponse(
+            }
+        } else {
+            Mono.just(ResponseEntity.status(503).body(FetchResponse(
                 typeId = typeId,
                 typeName = getTypeName(typeId),
                 count = 0,
                 status = "producer disabled"
             )))
+        }
     }
 
     /**

@@ -2,6 +2,13 @@ spring:
   application:
     name: kafka-at-home
 
+  datasource:
+    url: jdbc:sqlite:${SQLITE_DB_PATH:./data/kafka-at-home.db}
+    driver-class-name: org.sqlite.JDBC
+  sql:
+    init:
+      mode: always
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:

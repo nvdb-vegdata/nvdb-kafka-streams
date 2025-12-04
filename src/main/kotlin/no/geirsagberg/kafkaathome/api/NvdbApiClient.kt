@@ -1,13 +1,14 @@
 package no.geirsagberg.kafkaathome.api
 
-import kotlinx.coroutines.reactor.awaitSingle
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.toList
 import no.geirsagberg.kafkaathome.model.Vegobjekt
 import no.geirsagberg.kafkaathome.model.Veglenke
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.awaitBody
-import reactor.core.publisher.Flux
+import org.springframework.web.reactive.function.client.bodyToFlow
 
 /**
  * Client for the NVDB Uberiket API.
@@ -25,20 +26,24 @@ class NvdbApiClient(private val nvdbWebClient: WebClient) {
      *
      * @param typeId The type ID of the road object (e.g., 105 for speed limits)
      * @param antall Maximum number of records to fetch per request
-     * @return Flux of Vegobjekt objects
+     * @param start Optional starting object ID for pagination (fetch objects after this ID)
+     * @return Flow of Vegobjekt objects
      */
-    fun streamVegobjekter(typeId: Int, antall: Int = 1000): Flux<Vegobjekt> {
-        logger.info("Fetching vegobjekter of type {} from NVDB API", typeId)
+    fun streamVegobjekter(typeId: Int, antall: Int = 1000, start: Long? = null): Flow<Vegobjekt> {
+        logger.info("Fetching vegobjekter of type {} from NVDB API (start: {})", typeId, start)
         return nvdbWebClient.get()
             .uri { uriBuilder ->
-                uriBuilder
+                val builder = uriBuilder
                     .path("vegobjekter/$typeId/stream")
                     .queryParam("antall", antall)
-                    .build()
+                if (start != null) {
+                    builder.queryParam("start", start)
+                }
+                builder.build()
             }
             .accept(org.springframework.http.MediaType.APPLICATION_NDJSON)
             .retrieve()
-            .bodyToFlux(Vegobjekt::class.java)
+            .bodyToFlow<Vegobjekt>()
     }
 
     /**
@@ -88,24 +93,23 @@ class NvdbApiClient(private val nvdbWebClient: WebClient) {
                     builder.build()
                 }
                 .retrieve()
-                .bodyToFlux(Veglenke::class.java)
-                .collectList()
-                .awaitSingle()
+                .bodyToFlow<Veglenke>()
+                .toList()
 
             allVeglenker.addAll(batch)
 
             // Set start parameter as "[veglenkesekvensId]-[veglenkenummer]" from last veglenke
-            if (batch.size == antall) {
+            start = if (batch.size == antall) {
                 val lastVeglenke = batch.last()
                 val sekvensId = lastVeglenke.veglenkesekvensId
                 val veglenkenr = lastVeglenke.veglenkenummer
                 if (sekvensId != null && veglenkenr != null) {
-                    start = "$sekvensId-$veglenkenr"
+                    "$sekvensId-$veglenkenr"
                 } else {
-                    start = null
+                    null
                 }
             } else {
-                start = null
+                null
             }
         } while (start != null)
 

@@ -1,0 +1,1 @@
+- Use https://nvdbapiles.atlas.vegvesen.no/api-docs/uberiket for information about the NVDB Uberiket API
