@@ -34,8 +34,13 @@ nvdb:
     base-url: ${NVDB_API_BASE_URL:https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/}
   producer:
     enabled: ${NVDB_PRODUCER_ENABLED:false}
-    batch-size: ${NVDB_PRODUCER_BATCH_SIZE:100}
-    interval-ms: ${NVDB_PRODUCER_INTERVAL_MS:3600000}
+    backfill:
+      batch-size: ${NVDB_BACKFILL_BATCH_SIZE:100}
+    updates:
+      batch-size: ${NVDB_UPDATES_BATCH_SIZE:100}
+    schedule:
+      type915: ${NVDB_SCHEDULE_TYPE915:60000}  # 1 minute
+      type916: ${NVDB_SCHEDULE_TYPE916:60000}  # 1 minute
   enrichment:
     enabled: ${NVDB_ENRICHMENT_ENABLED:false}
     batch-size: ${NVDB_ENRICHMENT_BATCH_SIZE:1000}
@@ -68,3 +73,16 @@ management:
   endpoint:
     health:
       show-details: always
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+  info:
+    title: NVDB Kafka Producer API
+    description: REST API for managing NVDB data ingestion with backfill and updates modes
+    version: 1.0.0

@@ -127,6 +127,58 @@ class NvdbApiClient(private val nvdbWebClient: WebClient) {
         }
     }
 
+    /**
+     * Get the latest hendelse ID for a type without fetching actual events.
+     * Queries with antall=1 and extracts the hendelseId.
+     */
+    suspend fun getLatestHendelseId(typeId: Int): Long? {
+        logger.info("Fetching latest hendelse ID for type {}", typeId)
+        return try {
+            val response = nvdbWebClient.get()
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("hendelser/vegobjekter/$typeId")
+                        .queryParam("antall", 1)
+                        .build()
+                }
+                .retrieve()
+                .awaitBody<no.geirsagberg.kafkaathome.model.VegobjektHendelserResponse>()
+
+            response.hendelser.firstOrNull()?.hendelseId
+        } catch (e: Exception) {
+            logger.error("Error fetching latest hendelse ID for type {}: {}", typeId, e.message)
+            null
+        }
+    }
+
+    /**
+     * Stream hendelser for a specific type from a given start hendelse ID.
+     *
+     * @param typeId The type ID
+     * @param startHendelseId Optional starting hendelse ID for pagination
+     * @param antall Number of events per page (default: 1000)
+     * @return Response with list of hendelser
+     */
+    suspend fun fetchHendelser(
+        typeId: Int,
+        startHendelseId: Long? = null,
+        antall: Int = 1000
+    ): no.geirsagberg.kafkaathome.model.VegobjektHendelserResponse {
+        logger.debug("Fetching hendelser for type {} (start: {})", typeId, startHendelseId)
+        return nvdbWebClient.get()
+            .uri { uriBuilder ->
+                val builder = uriBuilder
+                    .path("hendelser/vegobjekter/$typeId")
+                    .queryParam("antall", antall)
+                if (startHendelseId != null) {
+                    builder.queryParam("start", startHendelseId)
+                }
+                builder.build()
+            }
+            .retrieve()
+            .awaitBody()
+    }
+
     companion object {
         // Common road object type IDs from NVDB
         const val TYPE_FARTSGRENSE = 105 // Speed limits
@@ -134,5 +186,14 @@ class NvdbApiClient(private val nvdbWebClient: WebClient) {
         const val TYPE_VEGREFERANSE = 532 // Road reference
         const val TYPE_KJØREFELT = 616 // Driving lanes
         const val TYPE_FUNKSJONSKLASSE = 821 // Functional road class
+        const val TYPE_VEGSYSTEM = 915 // Vegsystem
+        const val TYPE_STREKNING = 916 // Strekning
+
+        /**
+         * Get the topic name for a specific type.
+         */
+        fun getTopicNameForType(typeId: Int): String {
+            return "nvdb-vegobjekter-$typeId"
+        }
     }
 }
