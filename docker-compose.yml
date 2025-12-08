@@ -19,9 +19,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
-      KAFKA_NUM_PARTITIONS: 100
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true' # default: true
+      KAFKA_NUM_PARTITIONS: 5
       KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_LOG_CLEANUP_POLICY: 'compact'
+      KAFKA_LOG_MIN_COMPACTION_LAG_MS: 0 # default: 0 - old events immediately available for cleanup / compaction
+      KAFKA_LOG_SEGMENT_MS: 3600000  # 1 hour
+      KAFKA_LOG_SEGMENT_BYTES: 104857600  # 100MB
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     healthcheck:
       test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092" ]
@@ -42,23 +46,3 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
       DYNAMIC_CONFIG_ENABLED: 'true'
-
-  kafka-init:
-    image: apache/kafka:4.1.1
-    depends_on:
-      kafka:
-        condition: service_healthy
-    entrypoint: [ '/bin/sh', '-c' ]
-    command: |
-      "
-      echo 'Waiting for Kafka to be ready...'
-      sleep 5
-
-      echo 'Creating topics...'
-      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic nvdb-vegobjekter-raw --partitions 100 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.5 --config segment.ms=3600000
-      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic nvdb-vegobjekter-transformed --partitions 100 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.5 --config segment.ms=3600000
-      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic nvdb-fartsgrenser --partitions 100 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.5 --config segment.ms=3600000
-
-      echo 'Topics created successfully!'
-      /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list
-      "
