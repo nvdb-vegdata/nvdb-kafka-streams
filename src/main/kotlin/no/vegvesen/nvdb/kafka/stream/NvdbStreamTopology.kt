@@ -2,7 +2,6 @@ package no.vegvesen.nvdb.kafka.stream
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import no.vegvesen.nvdb.kafka.model.Vegobjekt
-import no.vegvesen.nvdb.kafka.service.GeometryEnrichmentService
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.kstream.Consumed
@@ -15,13 +14,13 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class NvdbStreamTopology(
     private val objectMapper: ObjectMapper,
-    private val geometryEnrichmentService: GeometryEnrichmentService
 ) {
     private val logger = LoggerFactory.getLogger(NvdbStreamTopology::class.java)
 
     private val vegsystemTopic = "nvdb-vegobjekter-915"
-
     private val strekningTopic = "nvdb-vegobjekter-916"
+    private val inputTopic = vegsystemTopic
+    private val enrichmentEnabled = true
 
 
     @Bean
@@ -38,13 +37,6 @@ class NvdbStreamTopology(
             .peek { key, value -> logger.debug("Processing record with key: {}", key) }
             .mapValues { value -> parseVegobjekt(value) }
             .filter { _, vegobjekt -> vegobjekt != null }
-            .mapValues { vegobjekt ->
-                if (enrichmentEnabled) {
-                    geometryEnrichmentService.enrichWithGeometry(vegobjekt!!)
-                } else {
-                    vegobjekt!!
-                }
-            }
             .mapValues { vegobjekt -> transformVegobjekt(vegobjekt) }
             .filter { _, value -> value != null }
             .mapValues { value -> value!! }

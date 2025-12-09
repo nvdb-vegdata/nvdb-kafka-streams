@@ -7,8 +7,8 @@ import org.springframework.test.context.ActiveProfiles
 
 @SpringBootTest
 @EmbeddedKafka(
-    partitions = 1,
-    topics = ["nvdb-vegobjekter-raw", "nvdb-vegobjekter-transformed", "nvdb-fartsgrenser"]
+    partitions = 5,
+    topics = ["nvdb-vegobjekter-915", "nvdb-vegobjekter-916"]
 )
 @ActiveProfiles("test")
 class KafkaAtHomeApplicationTests {

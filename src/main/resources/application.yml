@@ -13,7 +13,7 @@ spring:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: no.vegvesen.nvdb.kafka.serialization.KotlinxJsonSerializer
       acks: all
       retries: 3
     consumer:
@@ -27,6 +27,19 @@ spring:
       properties:
         default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
         default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+
+# Kafka Topics Configuration
+kafka:
+  topics:
+    partitions: ${KAFKA_TOPIC_PARTITIONS:5}
+    replicas: ${KAFKA_TOPIC_REPLICAS:1}
+    readiness:
+      enabled: ${KAFKA_TOPICS_READINESS_ENABLED:true}
+      timeout-seconds: ${KAFKA_TOPICS_READINESS_TIMEOUT:60}
+      max-retries: ${KAFKA_TOPICS_READINESS_MAX_RETRIES:20}
+      initial-retry-delay-ms: ${KAFKA_TOPICS_READINESS_INITIAL_DELAY:100}
+      max-retry-delay-ms: ${KAFKA_TOPICS_READINESS_MAX_DELAY:5000}
+      fail-on-startup-timeout: ${KAFKA_TOPICS_FAIL_ON_TIMEOUT:true}
 
 # NVDB API Configuration
 nvdb:
@@ -63,6 +76,9 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    kafka-topics:
+      enabled: ${KAFKA_TOPICS_HEALTH_ENABLED:true}
 
 # SpringDoc OpenAPI Configuration
 springdoc:

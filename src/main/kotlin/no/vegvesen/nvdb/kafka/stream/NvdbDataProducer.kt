@@ -1,6 +1,5 @@
 package no.vegvesen.nvdb.kafka.stream
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
@@ -28,8 +27,7 @@ import java.util.concurrent.atomic.AtomicLong
 @ConditionalOnProperty(name = ["nvdb.producer.enabled"], havingValue = "true")
 class NvdbDataProducer(
     private val nvdbApiClient: NvdbApiClient,
-    private val kafkaTemplate: KafkaTemplate<String, String>,
-    private val objectMapper: ObjectMapper,
+    private val kafkaTemplate: KafkaTemplate<String, Any>,
     private val progressRepository: ProducerProgressRepository
 ) {
     private val logger = LoggerFactory.getLogger(NvdbDataProducer::class.java)
@@ -295,9 +293,8 @@ class NvdbDataProducer(
         try {
             val topic = NvdbApiClient.getTopicNameForType(typeId)
             val key = vegobjekt.id.toString()
-            val value = objectMapper.writeValueAsString(vegobjekt)
 
-            kafkaTemplate.send(topic, key, value)
+            kafkaTemplate.send(topic, key, vegobjekt)
                 .whenComplete { result, ex ->
                     if (ex != null) {
                         logger.error(
@@ -314,7 +311,7 @@ class NvdbDataProducer(
                     }
                 }
         } catch (e: Exception) {
-            logger.error("Error serializing vegobjekt {}: {}", vegobjekt.id, e.message)
+            logger.error("Error producing vegobjekt {}: {}", vegobjekt.id, e.message)
         }
     }
 }

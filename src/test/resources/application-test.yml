@@ -33,12 +33,6 @@ nvdb:
     batch-size: 10
     interval-ms: 3600000
 
-kafka:
-  topics:
-    input: nvdb-vegobjekter-raw
-    output: nvdb-vegobjekter-transformed
-    speedlimits: nvdb-fartsgrenser
-
 logging:
   level:
     root: WARN
