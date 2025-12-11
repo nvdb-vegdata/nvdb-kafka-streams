@@ -1,8 +1,9 @@
 # Project Structure
 
 ## Root Directory Layout
+
 ```
-kafka-at-home/
+nvdb-kafka-streams/
 ├── src/                          # Source code
 ├── gradle/                       # Gradle wrapper files
 ├── data/                         # SQLite database storage
@@ -18,6 +19,7 @@ kafka-at-home/
 ```
 
 ## Source Code Structure (src/main/kotlin/no/vegvesen/nvdb/kafka/)
+
 ```
 ├── KafkaApplication.kt          # Main application entry point
 ├── api/
@@ -52,6 +54,7 @@ kafka-at-home/
 ```
 
 ## Test Structure (src/test/kotlin/no/vegvesen/nvdb/kafka/)
+
 ```
 ├── KafkaAtHomeApplicationTests.kt  # Application context tests
 └── stream/
@@ -59,9 +62,11 @@ kafka-at-home/
 ```
 
 ## Generated Code
+
 - OpenAPI models are generated in `build/generated/openapi/uberiket/` from the NVDB Uberiket API spec
 - Generated models are in package `no.vegvesen.nvdb.api.uberiket.model`
 
 ## Resources
+
 - Configuration: `src/main/resources/application.yml`
 - Test configuration: `src/test/resources/application-test.yml`

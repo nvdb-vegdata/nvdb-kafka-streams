@@ -1,9 +1,9 @@
 spring:
   application:
-    name: kafka-at-home-test
+    name: nvdb-kafka-streams-test
 
   datasource:
-    url: "jdbc:sqlite::memory:"
+    url: 'jdbc:sqlite::memory:'
     driver-class-name: org.sqlite.JDBC
   sql:
     init:
@@ -17,11 +17,11 @@ spring:
     consumer:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      group-id: kafka-at-home-test-consumer
+      group-id: nvdb-kafka-streams-test-consumer
       auto-offset-reset: earliest
     streams:
       bootstrap-servers: ${spring.embedded.kafka.brokers:localhost:9093}
-      application-id: kafka-at-home-streams-test
+      application-id: nvdb-kafka-streams-test
     embedded:
       kraft: true
 

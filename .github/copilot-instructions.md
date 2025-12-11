@@ -1,6 +1,7 @@
-# Copilot Instructions for kafka-at-home
+# Copilot Instructions for nvdb-kafka-streams
 
-This repository contains a Spring Boot 3 application using Kotlin and Kafka Streams to consume and transform road data from the NVDB (Norwegian Road Database) Uberiket API.
+This repository contains a Spring Boot 3 application using Kotlin and Kafka Streams to consume and transform road data
+from the NVDB (Norwegian Road Database) Uberiket API.
 
 ## Technology Stack
 
@@ -58,15 +59,16 @@ src/main/kotlin/no/geirsagberg/kafkaathome/
 
 ## Kafka Topics
 
-| Topic | Description |
-|-------|-------------|
-| `nvdb-vegobjekter-raw` | Raw road object data from NVDB API |
+| Topic                          | Description                           |
+| ------------------------------ | ------------------------------------- |
+| `nvdb-vegobjekter-raw`         | Raw road object data from NVDB API    |
 | `nvdb-vegobjekter-transformed` | Transformed/enriched road object data |
-| `nvdb-fartsgrenser` | Speed limit data (filtered) |
+| `nvdb-fartsgrenser`            | Speed limit data (filtered)           |
 
 ## NVDB Domain Knowledge
 
 The application works with Norwegian road data types:
+
 - **Fartsgrense (105)**: Speed limits
 - **Vegbredde (583)**: Road width
 - **Kjørefelt (616)**: Driving lanes

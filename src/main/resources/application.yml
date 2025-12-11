@@ -1,10 +1,9 @@
 spring:
   application:
-    name: kafka-at-home
+    name: nvdb-kafka-streams
 
   datasource:
-    url: jdbc:sqlite:${SQLITE_DB_PATH:./data/kafka-at-home.db}
-    driver-class-name: org.sqlite.JDBC
+    url: jdbc:sqlite:${SQLITE_DB_PATH:./data/nvdb-kafka-streams.db}
   sql:
     init:
       mode: always
@@ -12,7 +11,7 @@ spring:
   kafka:
     streams:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-      application-id: kafka-at-home-streams
+      application-id: nvdb-kafka-streams
 
 # Kafka Topics Configuration
 kafka:

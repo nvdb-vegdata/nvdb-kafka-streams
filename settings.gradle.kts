@@ -1,1 +1,1 @@
-rootProject.name = "kafka-at-home"
+rootProject.name = "nvdb-kafka-streams"
