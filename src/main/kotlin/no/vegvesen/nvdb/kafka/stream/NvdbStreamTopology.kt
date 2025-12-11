@@ -2,6 +2,9 @@ package no.vegvesen.nvdb.kafka.stream
 
 import no.vegvesen.nvdb.kafka.model.*
 import no.vegvesen.nvdb.kafka.serialization.kotlinxJsonSerde
+import no.vegvesen.nvdb.kafka.serialization.strekningKeySerde
+import no.vegvesen.nvdb.kafka.serialization.strekningKeySetSerde
+import no.vegvesen.nvdb.kafka.serialization.strekningReferenceDeltaSerde
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.utils.Bytes
@@ -27,9 +30,9 @@ class NvdbStreamTopology {
     private val vegobjektDeltaSerde: Serde<VegobjektDelta> = kotlinxJsonSerde()
     private val vegobjektUtstrekningDeltaSerde: Serde<VegobjektUtstrekningDelta> = kotlinxJsonSerde()
     private val vegobjektUtstrekningerSerde: Serde<Set<VegobjektUtstrekning>> = kotlinxJsonSerde()
-    private val strekningKeySerde: Serde<StrekningKey> = kotlinxJsonSerde()
-    private val strekningKeySetSerde: Serde<Set<StrekningKey>> = kotlinxJsonSerde()
-    private val strekningReferenceDeltaSerde: Serde<StrekningReferenceDelta> = kotlinxJsonSerde()
+    private val strekningKeySerde: Serde<StrekningKey> = strekningKeySerde()
+    private val strekningKeySetSerde: Serde<Set<StrekningKey>> = strekningKeySetSerde()
+    private val strekningReferenceDeltaSerde: Serde<StrekningReferenceDelta> = strekningReferenceDeltaSerde()
     private val veglenkesekvensIdSetSerde: Serde<Set<Long>> = kotlinxJsonSerde()
 
     @Bean
@@ -61,11 +64,11 @@ class NvdbStreamTopology {
         @Suppress("unused")
         val strekningreferanserTable = referenceDeltas
             .peek { key, delta ->
-                logger.debug("Processing delta: key=$key, delta=$delta")
+//                logger.debug("Processing delta: key=$key, delta=$delta")
             }
             .groupBy(
                 { _, delta ->
-                    logger.debug("Grouping by StrekningKey: ${delta.key}")
+//                    logger.debug("Grouping by StrekningKey: ${delta.key}")
                     delta.key
                 },
                 Grouped.with(strekningKeySerde, strekningReferenceDeltaSerde)

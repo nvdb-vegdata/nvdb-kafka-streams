@@ -1,10 +1,8 @@
 package no.vegvesen.nvdb.kafka.stream
 
-import kotlinx.serialization.Serializable
 import no.vegvesen.nvdb.kafka.model.VegfaseEgenskap
 import no.vegvesen.nvdb.kafka.model.VegkategoriEgenskap
 
-@Serializable
 data class StrekningKey(
     val vegkategori: VegkategoriEgenskap,
     val fase: VegfaseEgenskap,
@@ -32,10 +30,10 @@ data class StrekningKey(
 
     companion object {
 
-        private val fullPatternRegex = Regex("""([A-Z])([A-Z])(\d+)\s+S(\d+)D(\d+)""")
-        private val sectionPatternRegex = Regex("""([A-Z])([A-Z])(\d+)\s+S(\d+)""")
-        private val phasePatternRegex = Regex("""([A-Z])([A-Z])(\d+)""")
-        private val simplePatternRegex = Regex("""([A-Z])(\d+)""")
+        // Strict left-to-right hierarchy patterns (vegkategori + fase + vegnummer required)
+        private val fullPatternRegex = Regex("""([A-Z])([A-Z])(\d+)\s*S(\d+)D(\d+)""")       // EV6 S3D1
+        private val sectionPatternRegex = Regex("""([A-Z])([A-Z])(\d+)\s*S(\d+)""")          // EV6 S3
+        private val phasePatternRegex = Regex("""([A-Z])([A-Z])(\d+)""")                      // EV6
 
         fun parse(key: String): StrekningKey {
             val parts = key.split(" ")
@@ -51,10 +49,11 @@ data class StrekningKey(
         /**
          * Parse a flexible string format into a PartialStrekningKey.
          *
+         * Strict left-to-right hierarchy: vegkategori, fase, and vegnummer are always required.
+         *
          * Supported formats:
-         * - "E6" → category + number (all phases/sections/subsections)
-         * - "EV6" → category + phase + number (all sections/subsections)
-         * - "EV6 S3" → category + phase + number + section (all subsections)
+         * - "EV6" → category + fase + number (minimum required)
+         * - "EV6 S3" → + section
          * - "EV6 S3D1" → full key (exact match)
          * - "E V 6 3 1" → space-separated (backward compatibility)
          *
@@ -108,7 +107,7 @@ data class StrekningKey(
                 )
             }
 
-            // Try phase pattern: "EV6"
+            // Try phase pattern: "EV6" (minimum required)
             phasePatternRegex.matchEntire(normalized)?.let { match ->
                 val (kat, phase, num) = match.destructured
                 return PartialStrekningKey(
@@ -122,90 +121,46 @@ data class StrekningKey(
                 )
             }
 
-            // Try simple pattern: "E6"
-            simplePatternRegex.matchEntire(normalized)?.let { match ->
-                val (kat, num) = match.destructured
-                return PartialStrekningKey(
-                    vegkategori = VegkategoriEgenskap.fromNvdbLetter(kat)
-                        ?: throw IllegalArgumentException("Invalid vegkategori: $kat"),
-                    fase = null,
-                    vegnummer = num.toInt(),
-                    strekning = null,
-                    delstrekning = null
-                )
-            }
-
             throw IllegalArgumentException(
                 "Invalid key format: '$input'. " +
-                        "Supported formats: 'E6', 'EV6', 'EV6 S3', 'EV6 S3D1', 'E V 6 3 1'"
+                        "Supported formats: 'EV6', 'EV6 S3', 'EV6 S3D1', 'E V 6 3 1'"
             )
         }
 
         /**
          * Create a range query for all keys matching the given criteria.
-         * Pass null for fields that should match any value.
+         * Strict left-to-right hierarchy: vegkategori, fase, and vegnummer are required.
          *
          * Examples:
-         * - rangeFor(EV, V, 6, null, null) → All of EV6
-         * - rangeFor(EV, V, 6, 3, null) → All of EV6 S3 (all delstrekninger)
-         * - rangeFor(EV, V, null, null, null) → All EV roads
+         * - rangeFor(E, V, 6) → All EV6 roads (all sections/subsections)
+         * - rangeFor(E, V, 6, 3) → All EV6 S3 (all subsections)
+         * - rangeFor(E, V, 6, 3, 1) → Exact EV6 S3D1
          */
         fun rangeFor(
-            vegkategori: VegkategoriEgenskap? = null,
-            fase: VegfaseEgenskap? = null,
-            vegnummer: Int? = null,
+            vegkategori: VegkategoriEgenskap,
+            fase: VegfaseEgenskap,
+            vegnummer: Int,
             strekning: Int? = null,
             delstrekning: Int? = null
         ): Pair<StrekningKey, StrekningKey> {
-            // Build the "from" key with minimum values for unspecified fields
+            // Build "from" key with minimum values for unspecified fields
             val from = StrekningKey(
-                vegkategori = vegkategori ?: VegkategoriEgenskap.entries.first(),
-                fase = fase ?: VegfaseEgenskap.entries.first(),
-                vegnummer = vegnummer ?: 0,
+                vegkategori = vegkategori,
+                fase = fase,
+                vegnummer = vegnummer,
                 strekning = strekning ?: 0,
                 delstrekning = delstrekning ?: 0
             )
 
-            // Build the "to" key by incrementing the last specified field
+            // Build "to" key by incrementing the rightmost specified field
+            // Sort order: vegkategori → fase → vegnummer → strekning → delstrekning
             val to = when {
                 delstrekning != null -> from.copy(delstrekning = delstrekning + 1)
                 strekning != null -> from.copy(strekning = strekning + 1, delstrekning = 0)
-                vegnummer != null -> from.copy(vegnummer = vegnummer + 1, strekning = 0, delstrekning = 0)
-                fase != null -> {
-                    val nextFase = VegfaseEgenskap.entries.getOrNull(fase.ordinal + 1)
-                    if (nextFase != null) {
-                        from.copy(fase = nextFase, vegnummer = 0, strekning = 0, delstrekning = 0)
-                    } else {
-                        // Move to next vegkategori
-                        val nextKat = VegkategoriEgenskap.entries.getOrNull(vegkategori!!.ordinal + 1)
-                        from.copy(
-                            vegkategori = nextKat ?: vegkategori,
-                            fase = VegfaseEgenskap.entries.first(),
-                            vegnummer = 0,
-                            strekning = 0,
-                            delstrekning = 0
-                        )
-                    }
+                else -> {
+                    // No strekning/delstrekning specified, increment vegnummer
+                    from.copy(vegnummer = vegnummer + 1, strekning = 0, delstrekning = 0)
                 }
-
-                vegkategori != null -> {
-                    val nextKat = VegkategoriEgenskap.entries.getOrNull(vegkategori.ordinal + 1)
-                    from.copy(
-                        vegkategori = nextKat ?: vegkategori,
-                        fase = VegfaseEgenskap.entries.first(),
-                        vegnummer = 0,
-                        strekning = 0,
-                        delstrekning = 0
-                    )
-                }
-
-                else -> from.copy(
-                    vegkategori = VegkategoriEgenskap.entries.last(),
-                    fase = VegfaseEgenskap.entries.last(),
-                    vegnummer = Int.MAX_VALUE,
-                    strekning = Int.MAX_VALUE,
-                    delstrekning = Int.MAX_VALUE
-                )
             }
 
             return from to to
@@ -215,12 +170,15 @@ data class StrekningKey(
 
 /**
  * Partial strekning key for flexible queries.
- * Null fields will match any value in that position.
+ * Strict left-to-right hierarchy: fields match the sort order.
+ * Sort order: vegkategori → fase → vegnummer → strekning → delstrekning
+ *
+ * Minimum requirement: vegkategori, fase, and vegnummer must all be specified.
  */
 data class PartialStrekningKey(
-    val vegkategori: VegkategoriEgenskap?,
-    val fase: VegfaseEgenskap?,
-    val vegnummer: Int?,
+    val vegkategori: VegkategoriEgenskap,
+    val fase: VegfaseEgenskap,
+    val vegnummer: Int,
     val strekning: Int?,
     val delstrekning: Int?
 ) {

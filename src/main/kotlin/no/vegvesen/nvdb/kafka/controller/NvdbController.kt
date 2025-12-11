@@ -233,12 +233,16 @@ class NvdbController(
         description = """
             Retrieves all veglenkesekvensIds matching a strekning pattern.
 
+            Strict hierarchy: vegkategori, fase, and vegnummer are always required.
+
             Supported formats:
-            - 'E6': All E-roads numbered 6 (any phase/section/subsection)
-            - 'EV6': E-road 6 in use, all sections/subsections
+            - 'EV6': E-road 6 in use (V = in use), all sections/subsections
             - 'EV6 S3': E-road 6 section 3, all subsections
             - 'EV6 S3D1': Exact match (E-road 6, section 3, subsection 1)
             - 'E V 6 3 1': Space-separated format (backward compatible)
+
+            Valid vegkategori: E, R, F, K, P, S
+            Valid fase: V (in use), P (planned), A (under construction), F (temporary)
         """
     )
     @ApiResponses(
@@ -249,7 +253,7 @@ class NvdbController(
     )
     @GetMapping("/strekninger")
     fun findVeglenkesekvenserByStrekning(
-        @Parameter(description = "StrekningKey pattern (e.g., 'E6', 'EV6', 'EV6 S3D1')", required = true)
+        @Parameter(description = "StrekningKey pattern (e.g., 'EV6', 'EV6 S3', 'EV6 S3D1')", required = true)
         @RequestParam key: String
     ): ResponseEntity<StrekningQueryResponse> {
         val state = kafkaStreams.state()
