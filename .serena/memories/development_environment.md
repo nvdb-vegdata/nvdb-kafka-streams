@@ -55,7 +55,7 @@ The application starts on port 8080 (configurable via `SERVER_PORT` env var).
 ### Required for Custom Configuration
 
 | Variable                  | Default                                                 | Purpose                                |
-| ------------------------- | ------------------------------------------------------- | -------------------------------------- |
+|---------------------------|---------------------------------------------------------|----------------------------------------|
 | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092`                                        | Kafka broker connection                |
 | `NVDB_API_BASE_URL`       | `https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/` | NVDB API endpoint                      |
 | `NVDB_PRODUCER_ENABLED`   | `true`                                                  | Enable/disable scheduled data fetching |
@@ -65,14 +65,12 @@ The application starts on port 8080 (configurable via `SERVER_PORT` env var).
 ### Optional Configuration
 
 | Variable                         | Default | Purpose                                 |
-| -------------------------------- | ------- | --------------------------------------- |
+|----------------------------------|---------|-----------------------------------------|
 | `KAFKA_TOPIC_PARTITIONS`         | `5`     | Number of partitions for created topics |
 | `KAFKA_TOPIC_REPLICAS`           | `1`     | Replication factor                      |
 | `KAFKA_TOPICS_READINESS_ENABLED` | `true`  | Wait for topics on startup              |
 | `NVDB_BACKFILL_BATCH_SIZE`       | `100`   | Batch size for backfill mode            |
 | `NVDB_UPDATES_BATCH_SIZE`        | `100`   | Batch size for updates mode             |
-| `NVDB_SCHEDULE_TYPE915`          | `60000` | Schedule interval (ms) for type 915     |
-| `NVDB_SCHEDULE_TYPE916`          | `60000` | Schedule interval (ms) for type 916     |
 
 ## Database
 
@@ -80,16 +78,6 @@ The application starts on port 8080 (configurable via `SERVER_PORT` env var).
 - **Location**: `./data/nvdb-kafka-streams.db`
 - **Purpose**: Tracks producer progress (last fetched object IDs, timestamps)
 - **Initialization**: Automatic via Spring `sql.init.mode=always`
-
-## Kafka Topics
-
-The application works with several Kafka topics:
-
-- `nvdb-vegobjekter-raw` - Raw road object data from NVDB API
-- `nvdb-vegobjekter-transformed` - Transformed/enriched data
-- `nvdb-fartsgrenser` - Speed limit data (filtered)
-
-Topics are auto-created when the application starts (if `KAFKA_TOPICS_READINESS_ENABLED=true`).
 
 ## Testing Environment
 

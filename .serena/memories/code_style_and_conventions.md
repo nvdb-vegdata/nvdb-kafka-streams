@@ -40,17 +40,13 @@
 - **Topics**: Configurable via `KafkaTopicProperties` with partition and replica settings
 
 ## Testing Conventions
-- **Framework**: JUnit 5 with Spring Boot Test
+- **Framework**: JUnit 6 with Spring Boot Test
 - **Structure**: Arrange-Act-Assert pattern with comments for longer tests
 - **Embedded Services**: Use embedded Kafka for integration tests
 - **Mocking**: MockK for mocking Kotlin classes
 - **No Wildcards**: Don't run tests with wildcards (*)
 - **Private Methods**: Make methods public if they need unit testing rather than using reflection
 - **Test Quality**: Write proper tests that assert correct outcomes, not just that failures occur
-
-## Error Handling
-- Clear error on last success, stop on error (as per recent commits)
-- Leverage Kotlin's Result type or nullable returns where appropriate
 
 ## Comments
 - Avoid unnecessary comments; prefer self-documenting code
