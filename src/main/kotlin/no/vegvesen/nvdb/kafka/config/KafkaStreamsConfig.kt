@@ -2,6 +2,7 @@ package no.vegvesen.nvdb.kafka.config
 
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsConfig
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.annotation.EnableKafkaStreams
 import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration
 import org.springframework.kafka.config.KafkaStreamsConfiguration
+import org.springframework.kafka.config.StreamsBuilderFactoryBean
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.KafkaAdmin
 
@@ -33,8 +35,17 @@ class KafkaStreamsConfig {
         val props = mutableMapOf<String, Any>()
         props[StreamsConfig.APPLICATION_ID_CONFIG] = applicationId
         props[StreamsConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers
-//        props[StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
-//        props[StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
+
+        // Increase max message size for producer (default is 1MB)
+        props["max.request.size"] = 10 * 1024 * 1024 // 10MB
+
+        // Configure processing guarantees
+        props[StreamsConfig.PROCESSING_GUARANTEE_CONFIG] = StreamsConfig.EXACTLY_ONCE_V2
+
+        // Add better error handling
+        props[StreamsConfig.DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG] =
+            "org.apache.kafka.streams.errors.LogAndContinueExceptionHandler"
+
         return KafkaStreamsConfiguration(props)
     }
 
@@ -46,11 +57,19 @@ class KafkaStreamsConfig {
     }
 
     @Bean
+    @org.springframework.context.annotation.Lazy
+    fun kafkaStreams(streamsBuilderFactoryBean: StreamsBuilderFactoryBean): KafkaStreams =
+        streamsBuilderFactoryBean.kafkaStreams!!
+
+    @Bean
     fun vegsystemTopic(): NewTopic {
         return TopicBuilder.name("nvdb-vegobjekter-915")
             .partitions(topicPartitions)
             .compact()
             .replicas(topicReplicas)
+            .config("retention.ms", "604800000")  // 7 days
+            .config("segment.ms", "86400000")      // 1 day
+            .config("max.message.bytes", "10485760") // 10MB
             .build()
     }
 
@@ -60,6 +79,9 @@ class KafkaStreamsConfig {
             .partitions(topicPartitions)
             .compact()
             .replicas(topicReplicas)
+            .config("retention.ms", "604800000")  // 7 days
+            .config("segment.ms", "86400000")      // 1 day
+            .config("max.message.bytes", "10485760") // 10MB
             .build()
     }
 

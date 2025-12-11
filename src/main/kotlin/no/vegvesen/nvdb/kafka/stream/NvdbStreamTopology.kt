@@ -60,8 +60,14 @@ class NvdbStreamTopology {
         // Aggregate deltas into final state
         @Suppress("unused")
         val strekningreferanserTable = referenceDeltas
+            .peek { key, delta ->
+                logger.debug("Processing delta: key=$key, delta=$delta")
+            }
             .groupBy(
-                { _, delta -> delta.key },
+                { _, delta ->
+                    logger.debug("Grouping by StrekningKey: ${delta.key}")
+                    delta.key
+                },
                 Grouped.with(strekningKeySerde, strekningReferenceDeltaSerde)
             )
             .aggregate(

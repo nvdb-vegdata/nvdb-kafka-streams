@@ -21,9 +21,17 @@ class KotlinxJsonSerializer<T : Any>(private val serializer: KSerializer<T>) : S
         if (data == null) return ByteArray(0)
 
         return try {
-            json.encodeToString(serializer, data).toByteArray()
+            val jsonString = json.encodeToString(serializer, data)
+            val bytes = jsonString.toByteArray()
+
+            // Log large messages that might cause issues
+            if (bytes.size > 100_000) {
+                println("WARNING: Large message being serialized to topic '$topic': ${bytes.size} bytes")
+            }
+
+            bytes
         } catch (e: Exception) {
-            throw SerializationException("Error serializing value", e)
+            throw SerializationException("Error serializing value to topic '$topic': ${e.message}", e)
         }
     }
 }

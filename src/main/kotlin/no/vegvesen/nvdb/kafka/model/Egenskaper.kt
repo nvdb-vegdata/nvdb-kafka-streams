@@ -12,6 +12,9 @@ enum class VegkategoriEgenskap(val nvdbValue: Int) {
 
     companion object {
         fun fromNvdbValue(nvdbValue: Int): VegkategoriEgenskap? = entries.find { it.nvdbValue == nvdbValue }
+
+        fun fromNvdbLetter(letter: String): VegkategoriEgenskap? =
+            entries.find { it.name == letter.uppercase() }
     }
 }
 
@@ -27,5 +30,8 @@ enum class VegfaseEgenskap(val nvdbValue: Int) {
 
     companion object {
         fun fromNvdbValue(nvdbValue: Int): VegfaseEgenskap? = entries.find { it.nvdbValue == nvdbValue }
+
+        fun fromNvdbLetter(letter: String): VegfaseEgenskap? =
+            entries.find { it.name == letter.uppercase() }
     }
 }
