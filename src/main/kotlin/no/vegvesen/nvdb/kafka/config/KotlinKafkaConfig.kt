@@ -6,7 +6,7 @@ import io.github.nomisRev.kafka.publisher.KafkaPublisher
 import io.github.nomisRev.kafka.publisher.PublisherSettings
 import jakarta.annotation.PreDestroy
 import no.vegvesen.nvdb.kafka.model.VegobjektDelta
-import no.vegvesen.nvdb.kafka.serialization.KotlinxJsonSerializer
+import no.vegvesen.nvdb.kafka.serialization.kotlinxJsonSerializer
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import org.apache.kafka.common.serialization.LongSerializer
 import org.slf4j.LoggerFactory
@@ -25,7 +25,7 @@ class KotlinKafkaConfig(
 
     @Bean
     fun publisherSettings(): PublisherSettings<Long, VegobjektDelta> {
-        val jsonSerializer = KotlinxJsonSerializer<VegobjektDelta>()
+        val jsonSerializer = kotlinxJsonSerializer<VegobjektDelta>()
 
         return PublisherSettings(
             bootstrapServers,

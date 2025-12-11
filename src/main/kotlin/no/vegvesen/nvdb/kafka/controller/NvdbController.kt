@@ -259,6 +259,12 @@ class NvdbController(
             )
         }
     }
+
+    @GetMapping("/strekninger")
+    fun findVeglenkesekvenserByStrekning(): ResponseEntity<Map<String, Any>> {
+        // TODO: Implement strekning query endpoint
+        return ResponseEntity.status(501).body(mapOf("message" to "Not implemented yet"))
+    }
 }
 
 data class BackfillControlResponse(

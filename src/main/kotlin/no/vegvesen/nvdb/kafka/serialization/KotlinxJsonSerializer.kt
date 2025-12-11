@@ -1,5 +1,6 @@
 package no.vegvesen.nvdb.kafka.serialization
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.apache.kafka.common.errors.SerializationException
@@ -14,40 +15,37 @@ private val json = Json {
     prettyPrint = false
 }
 
-class KotlinxJsonSerializer<T : Any> : Serializer<T> {
+class KotlinxJsonSerializer<T : Any>(private val serializer: KSerializer<T>) : Serializer<T> {
 
     override fun serialize(topic: String, data: T?): ByteArray {
         if (data == null) return ByteArray(0)
 
         return try {
-            val serializer = serializer(data::class.java)
             json.encodeToString(serializer, data).toByteArray()
         } catch (e: Exception) {
-            throw SerializationException("Error serializing value of type ${data::class.simpleName}", e)
+            throw SerializationException("Error serializing value", e)
         }
     }
 }
 
-class KotlinxJsonDeserializer<T : Any>(private val targetClass: Class<T>) : Deserializer<T> {
+class KotlinxJsonDeserializer<T : Any>(private val deserializer: KSerializer<T>) : Deserializer<T> {
 
-    @Suppress("UNCHECKED_CAST")
     override fun deserialize(topic: String, data: ByteArray?): T? {
         if (data == null || data.isEmpty()) return null
 
         return try {
-            val deserializer = serializer(targetClass)
-            json.decodeFromString(deserializer, data.decodeToString()) as T
+            json.decodeFromString(deserializer, data.decodeToString())
         } catch (e: Exception) {
-            throw SerializationException("Error deserializing value to type ${targetClass.simpleName}", e)
+            throw SerializationException("Error deserializing value", e)
         }
     }
 }
 
 inline fun <reified T : Any> kotlinxJsonSerializer(): KotlinxJsonSerializer<T> =
-    KotlinxJsonSerializer()
+    KotlinxJsonSerializer(serializer())
 
 inline fun <reified T : Any> kotlinxJsonDeserializer(): KotlinxJsonDeserializer<T> =
-    KotlinxJsonDeserializer(T::class.java)
+    KotlinxJsonDeserializer(serializer())
 
 inline fun <reified T : Any> kotlinxJsonSerde(): Serde<T> = Serdes.serdeFrom(
     kotlinxJsonSerializer(),
