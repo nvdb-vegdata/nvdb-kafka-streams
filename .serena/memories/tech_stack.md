@@ -1,43 +1,45 @@
 # Technology Stack
 
-## Core Technologies
+## Core Framework
+- **Spring Boot 4.0.0** - Application framework with dependency injection, configuration, and runtime management
+- **Kotlin 2.2.20** - Primary programming language with JVM toolchain 21
+- **Gradle (Kotlin DSL)** - Build tool and dependency management
 
-- **Spring Boot**: 4.0.0
-- **Kotlin**: 2.2.20
-- **Java**: JVM 17 (toolchain)
-- **Gradle**: Kotlin DSL build system
+## Kafka & Stream Processing
+- **Apache Kafka Streams** - Stream processing framework
+- **Spring Kafka** - Spring integration for Apache Kafka
+- **kotlin-kafka (0.4.1)** - Kotlin-specific Kafka utilities
 
-## Key Dependencies
+## HTTP Client & API
+- **Ktor Client** - For making HTTP calls to NVDB API
+  - ktor-client-cio (Coroutine-based I/O engine)
+  - ktor-client-content-negotiation
+  - ktor-serialization-kotlinx-json
+  - ktor-client-logging
+- **Spring WebFlux** - For reactive web capabilities
 
-### Spring Framework
-- `spring-boot-starter-web` - Web MVC framework
-- `spring-boot-starter-webflux` - Reactive HTTP client for API calls
-- `spring-kafka` - Spring integration for Kafka
+## Serialization
+- **kotlinx-serialization-json** - JSON serialization/deserialization
+- **Custom KotlinxJsonSerializer** - Kafka-specific serializer using kotlinx.serialization
 
-### Kafka
-- `kafka-streams` - Stream processing framework
-- `spring-kafka` - Spring Kafka support
+## Database
+- **SQLite JDBC** - Lightweight embedded database for tracking producer progress
+- **Spring JDBC** - Database access abstraction
 
-### Kotlin & Jackson
-- `kotlin-reflect` - Kotlin reflection
-- `jackson-module-kotlin` - JSON serialization/deserialization
-- `reactor-kotlin-extensions` - Kotlin extensions for Project Reactor
-- `kotlinx-coroutines-reactor` - Coroutines support for Reactor
+## API Documentation
+- **SpringDoc OpenAPI** (3.0.0) - Automatic API documentation and Swagger UI
 
-### Testing
-- `spring-boot-starter-test` - Spring Boot testing utilities
-- `spring-kafka-test` - Embedded Kafka for testing
-- `kafka-streams-test-utils` - TopologyTestDriver for Kafka Streams testing
-- JUnit 5 (JUnit Platform)
+## Additional Libraries
+- **kotlinx-datetime (0.7.1)** - Date/time handling
+- **kotlinx-coroutines-reactor** - Coroutine support for reactive programming
+- **Project Reactor Kotlin Extensions** - Kotlin extensions for reactive streams
 
-## Infrastructure
+## Testing
+- **Spring Boot Test** - Testing framework
+- **Spring Kafka Test** - Embedded Kafka for integration testing
+- **Kafka Streams Test Utils** - Testing utilities for stream topologies
+- **MockK (1.14.6)** - Mocking framework for Kotlin
+- **JUnit Platform** - Test runner
 
-### Local Development
-- **Apache Kafka**: 4.1.1 (KRaft mode, no ZooKeeper)
-- **Kafka UI**: provectuslabs/kafka-ui (accessible on port 8090)
-- **Docker Compose**: For local Kafka infrastructure
-
-### Kafka Configuration
-- 3 partitions per topic
-- Replication factor: 1 (for local development)
-- Auto-topic creation enabled
+## Code Generation
+- **OpenAPI Generator** (7.17.0) - Generates Kotlin model classes from NVDB Uberiket OpenAPI spec

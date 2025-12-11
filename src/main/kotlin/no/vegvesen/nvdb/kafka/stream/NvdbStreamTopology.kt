@@ -9,8 +9,6 @@ class NvdbStreamTopology {
 
     private val vegsystemTopic = "nvdb-vegobjekter-915"
     private val strekningTopic = "nvdb-vegobjekter-916"
-    private val inputTopic = vegsystemTopic
-    private val enrichmentEnabled = true
 
 
 //    @Bean

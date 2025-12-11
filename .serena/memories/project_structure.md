@@ -1,86 +1,67 @@
 # Project Structure
 
-## Repository Layout
-
+## Root Directory Layout
 ```
 kafka-at-home/
-├── .github/
-│   └── copilot-instructions.md    # GitHub Copilot instructions
-├── .gradle/                        # Gradle build cache
-├── .idea/                          # IntelliJ IDEA project files
-├── .serena/                        # Serena MCP memories
-├── gradle/                         # Gradle wrapper files
-│   ├── wrapper/
-│   └── gng.cfg
-├── src/
-│   ├── main/
-│   │   ├── kotlin/
-│   │   │   └── no/geirsagberg/kafkaathome/
-│   │   │       ├── KafkaAtHomeApplication.kt
-│   │   │       ├── api/
-│   │   │       │   └── NvdbApiClient.kt
-│   │   │       ├── config/
-│   │   │       │   ├── KafkaStreamsConfig.kt
-│   │   │       │   ├── NvdbApiProperties.kt
-│   │   │       │   └── WebClientConfig.kt
-│   │   │       ├── controller/
-│   │   │       │   └── NvdbController.kt
-│   │   │       ├── model/
-│   │   │       │   └── NvdbModels.kt
-│   │   │       └── stream/
-│   │   │           ├── NvdbDataProducer.kt
-│   │   │           └── NvdbStreamTopology.kt
-│   │   └── resources/
-│   │       └── application.yml
-│   └── test/
-│       ├── kotlin/
-│       │   └── no/geirsagberg/kafkaathome/
-│       │       ├── KafkaAtHomeApplicationTests.kt
-│       │       └── stream/
-│       │           └── NvdbStreamTopologyTest.kt
-│       └── resources/
-│           └── application-test.yml
-├── build.gradle.kts                # Gradle build configuration
-├── docker-compose.yml              # Docker Compose for Kafka
-├── gradlew                         # Gradle wrapper script (Unix)
-├── gradlew.bat                     # Gradle wrapper script (Windows)
-├── settings.gradle.kts             # Gradle settings
-├── LICENSE                         # MIT License
-└── README.md                       # Project documentation
+├── src/                          # Source code
+├── gradle/                       # Gradle wrapper files
+├── data/                         # SQLite database storage
+├── docs/                         # Documentation
+├── .github/                      # GitHub workflows/actions
+├── .claude/                      # Claude Code configuration
+├── .opencode/                    # OpenCode IDE configuration
+├── build.gradle.kts             # Gradle build configuration
+├── settings.gradle.kts          # Gradle settings
+├── docker-compose.yml           # Local Kafka setup
+├── CLAUDE.md                    # Project-specific Claude instructions
+└── README.md                    # Project documentation
 ```
 
-## Key Components
+## Source Code Structure (src/main/kotlin/no/vegvesen/nvdb/kafka/)
+```
+├── KafkaApplication.kt          # Main application entry point
+├── api/
+│   └── NvdbApiClient.kt         # Client for NVDB Uberiket API
+├── config/
+│   ├── HttpClientConfig.kt      # Ktor HTTP client configuration
+│   ├── KafkaStreamsConfig.kt    # Kafka Streams setup
+│   ├── KafkaTopicProperties.kt  # Topic configuration properties
+│   ├── KotlinKafkaConfig.kt     # Kotlin-kafka configuration
+│   ├── NvdbApiProperties.kt     # NVDB API configuration binding
+│   └── KafkaTopicReadinessListener.kt # Kafka topic initialization
+├── controller/
+│   └── NvdbController.kt        # REST API endpoints
+├── health/
+│   └── KafkaTopicHealthIndicator.kt # Kafka health checks
+├── model/
+│   ├── HendelseModels.kt        # Event/hendelse data models
+│   ├── ProducerProgress.kt      # Producer progress tracking
+│   └── VegobjektUtstrekning.kt  # Road object extent models
+├── repository/
+│   └── ProducerProgressRepository.kt # SQLite repository for progress tracking
+├── serialization/
+│   ├── KotlinxJsonSerializer.kt # Custom Kafka serializer
+│   └── ContextualSerializers.kt # Serialization helpers
+├── service/
+│   └── KafkaTopicReadinessService.kt # Topic readiness management
+├── stream/
+│   ├── NvdbDataProducer.kt      # Produces NVDB data to Kafka topics
+│   └── NvdbStreamTopology.kt    # Kafka Streams topology definition
+└── extensions/
+    └── IterableExtensions.kt    # Kotlin extension functions
+```
 
-### Application Entry Point
-- **KafkaAtHomeApplication.kt**: Main Spring Boot application class with @EnableScheduling
+## Test Structure (src/test/kotlin/no/vegvesen/nvdb/kafka/)
+```
+├── KafkaAtHomeApplicationTests.kt  # Application context tests
+└── stream/
+    └── NvdbStreamTopologyTest.kt   # Stream topology tests
+```
 
-### API Layer
-- **NvdbApiClient.kt**: HTTP client for consuming NVDB Uberiket API using Spring WebFlux
+## Generated Code
+- OpenAPI models are generated in `build/generated/openapi/uberiket/` from the NVDB Uberiket API spec
+- Generated models are in package `no.vegvesen.nvdb.api.uberiket.model`
 
-### Configuration
-- **KafkaStreamsConfig.kt**: Kafka Streams bean configuration
-- **NvdbApiProperties.kt**: Configuration properties for NVDB API
-- **WebClientConfig.kt**: WebClient bean configuration for HTTP calls
-
-### Controllers
-- **NvdbController.kt**: REST API endpoints for triggering data fetching and status checks
-
-### Models
-- **NvdbModels.kt**: Data classes for NVDB domain objects and DTOs
-
-### Stream Processing
-- **NvdbDataProducer.kt**: Fetches data from NVDB API and produces to Kafka topics
-- **NvdbStreamTopology.kt**: Kafka Streams topology for data transformation
-
-### Configuration Files
-- **application.yml**: Main application configuration
-- **application-test.yml**: Test-specific configuration
-- **docker-compose.yml**: Kafka cluster setup (KRaft mode with Kafka UI)
-
-## Kafka Topics
-
-| Topic | Description |
-|-------|-------------|
-| `nvdb-vegobjekter-raw` | Raw road object data from NVDB API |
-| `nvdb-vegobjekter-transformed` | Transformed/enriched road object data |
-| `nvdb-fartsgrenser` | Speed limit data (filtered) |
+## Resources
+- Configuration: `src/main/resources/application.yml`
+- Test configuration: `src/test/resources/application-test.yml`

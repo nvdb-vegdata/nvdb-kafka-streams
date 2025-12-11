@@ -20,7 +20,7 @@ val json = Json {
 
 @Configuration
 class HttpClientConfig(
-    @Value($$"${nvdb.api.baseUrl}") private val baseUrl: String
+    @Value($$"${nvdb.api.base-url}") private val baseUrl: String
 ) {
 
     private val log = LoggerFactory.getLogger(HttpClientConfig::class.java)

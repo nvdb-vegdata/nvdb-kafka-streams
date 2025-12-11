@@ -1,26 +1,23 @@
 # Project Overview
 
-**kafka-at-home** is a Spring Boot 3 application using Kotlin and Kafka Streams to consume and transform road data from the NVDB (Norwegian Road Database) Uberiket API.
-
 ## Purpose
+kafka-at-home is a Spring Boot 4 application that consumes and transforms road data from the Norwegian Road Database (NVDB) Uberiket API using Kafka Streams.
 
-The application:
-- **Consumes** road data from the [NVDB Uberiket API](https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/)
-- **Transforms** the data using Kafka Streams
-- **Produces** enriched data to output Kafka topics
+## Core Functionality
+- **Consumes** road data from NVDB Uberiket API (https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/)
+- **Transforms** the data using Kafka Streams for processing
+- **Produces** enriched data to output Kafka topics for downstream consumption
 
-## Supported Data Types
-
-The application supports fetching various road object types from NVDB:
+## Supported NVDB Data Types
+The application handles various road object types from NVDB:
 - **Fartsgrense (105)**: Speed limits
 - **Vegbredde (583)**: Road width
 - **Kjørefelt (616)**: Driving lanes
 - **Funksjonsklasse (821)**: Functional road class
 
-## Key Features
-
-- REST API for triggering data fetching from NVDB
+## Key Components
+- REST API endpoints for triggering data fetching
+- Kafka producer for scheduled/on-demand data ingestion with backfill and update modes
 - Kafka Streams topology for data transformation
-- Scheduled/manual data ingestion from Norwegian road database
-- Spring WebFlux for reactive HTTP client
-- Docker Compose setup for local Kafka cluster with Kafka UI
+- SQLite database for tracking producer progress
+- Health checks and monitoring via Spring Actuator

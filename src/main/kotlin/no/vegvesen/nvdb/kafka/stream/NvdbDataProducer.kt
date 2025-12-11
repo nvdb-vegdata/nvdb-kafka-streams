@@ -1,18 +1,18 @@
 package no.vegvesen.nvdb.kafka.stream
 
 import io.github.nomisRev.kafka.publisher.KafkaPublisher
-import no.vegvesen.nvdb.api.uberiket.model.EnumEgenskap
-import no.vegvesen.nvdb.api.uberiket.model.HeltallEgenskap
-import no.vegvesen.nvdb.api.uberiket.model.StedfestingLinjer
-import no.vegvesen.nvdb.api.uberiket.model.TekstEgenskap
+import kotlinx.coroutines.flow.takeWhile
+import no.vegvesen.nvdb.api.uberiket.model.*
 import no.vegvesen.nvdb.kafka.api.NvdbApiClient
 import no.vegvesen.nvdb.kafka.extensions.associate
 import no.vegvesen.nvdb.kafka.model.*
+import no.vegvesen.nvdb.kafka.model.Vegobjekt
 import no.vegvesen.nvdb.kafka.repository.ProducerProgressRepository
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.context.SmartLifecycle
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.time.Instant.now
@@ -29,25 +29,27 @@ import no.vegvesen.nvdb.api.uberiket.model.Vegobjekt as ApiVegobjekt
 class NvdbDataProducer(
     private val nvdbApiClient: NvdbApiClient,
     private val kafkaPublisher: KafkaPublisher<Long, VegobjektDelta>,
-    private val progressRepository: ProducerProgressRepository
-) {
+    private val progressRepository: ProducerProgressRepository,
+
+    @Value($$"${nvdb.producer.backfill.batch-size}")
+    private val backfillBatchSize: Int,
+
+    @Value($$"${nvdb.producer.updates.batch-size}")
+    private val updatesBatchSize: Int
+
+) : SmartLifecycle {
     private val logger = LoggerFactory.getLogger(NvdbDataProducer::class.java)
 
     @Value($$"${nvdb.producer.enabled:false}")
     private var producerEnabled: Boolean = false
 
-    @Value($$"${nvdb.producer.backfill.batch-size:100}")
-    private var backfillBatchSize: Int = 100
-
-    @Value($$"${nvdb.producer.updates.batch-size:100}")
-    private var updatesBatchSize: Int = 100
-
+    private val isRunning = AtomicBoolean(false)
     private val isProcessingType915 = AtomicBoolean(false)
     private val isProcessingType916 = AtomicBoolean(false)
 
-    @Scheduled(cron = "0/5 * * * * *")
+    @Scheduled(fixedRateString = "5s")
     suspend fun processType915() {
-        if (!producerEnabled) return
+        if (!producerEnabled || !isRunning.get()) return
         if (!isProcessingType915.compareAndSet(false, true)) {
             logger.debug("Type 915 processing already in progress, skipping")
             return
@@ -60,9 +62,9 @@ class NvdbDataProducer(
         }
     }
 
-    @Scheduled(cron = "0/5 * * * * *")
+    @Scheduled(fixedRateString = "5s")
     suspend fun processType916() {
-        if (!producerEnabled) return
+        if (!producerEnabled || !isRunning.get()) return
         if (!isProcessingType916.compareAndSet(false, true)) {
             logger.debug("Type 916 processing already in progress, skipping")
             return
@@ -84,21 +86,23 @@ class NvdbDataProducer(
 
         when (progress?.mode) {
             ProducerMode.BACKFILL -> {
-                logger.info("Processing type {} in BACKFILL mode", typeId)
-                while (progress?.mode == ProducerMode.BACKFILL) {
+                logger.debug("Processing type {} in BACKFILL mode", typeId)
+                while (progress?.mode == ProducerMode.BACKFILL && isRunning.get()) {
                     progress = runBackfillBatch(typeId, progress)
                     if (progress.lastError != null) {
                         logger.warn("Stopping backfill for type {} due to error: {}", typeId, progress.lastError)
                         break
                     }
                 }
-                if (progress.mode != ProducerMode.BACKFILL) {
+                if (!isRunning.get()) {
+                    logger.info("Backfill for type {} stopped due to shutdown", typeId)
+                } else if (progress.mode != ProducerMode.BACKFILL) {
                     logger.info("Type {} backfill complete, now in {} mode", typeId, progress.mode)
                 }
             }
 
             ProducerMode.UPDATES -> {
-                logger.info("Processing type {} in UPDATES mode", typeId)
+                logger.debug("Processing type {} in UPDATES mode", typeId)
                 runUpdatesCheck(typeId, progress)
             }
 
@@ -122,6 +126,7 @@ class NvdbDataProducer(
             // publishScope automatically awaits all sends before returning
             kafkaPublisher.publishScope {
                 nvdbApiClient.streamVegobjekter(typeId, backfillBatchSize, start)
+                    .takeWhile { isRunning.get() }
                     .collect { apiVegobjekt ->
                         val vegobjekt = toDomain(apiVegobjekt)
                         val delta = VegobjektDelta(before = null, after = vegobjekt)
@@ -133,6 +138,16 @@ class NvdbDataProducer(
                     }
             }
             // All sends acknowledged by this point (at-least-once guaranteed)
+
+            if (!isRunning.get()) {
+                logger.info("Backfill batch for type {} interrupted by shutdown after {} items", typeId, count)
+                val interruptedProgress = progress.copy(
+                    lastProcessedId = lastId,
+                    updatedAt = now()
+                )
+                progressRepository.save(interruptedProgress)
+                return interruptedProgress
+            }
 
             if (count == 0) {
                 val updatedProgress = progress.copy(
@@ -217,27 +232,37 @@ class NvdbDataProducer(
             // Wrap all sends in publishScope for at-least-once delivery
             kafkaPublisher.publishScope {
                 nvdbApiClient.streamVegobjektHendelser(typeId, updatesBatchSize, startHendelseId)
+                    .takeWhile { isRunning.get() }
                     .collect { deltaHendelse ->
                         try {
-                            // Fetch the current vegobjekt by ID (should return exactly one)
-                            nvdbApiClient.streamVegobjekter(
-                                typeId = typeId,
-                                antall = 1,
-                                start = null,
-                                ider = listOf(deltaHendelse.vegobjektId)
-                            ).collect { apiVegobjekt ->
-                                val domainVegobjekt = toDomain(apiVegobjekt)
-                                val delta = VegobjektDelta(before = null, after = domainVegobjekt)
+                            val delta = when (val hendelseData = deltaHendelse.data) {
+                                is VegobjektVersjonOpprettet -> {
+                                    hendelseData.opprettetToDelta(deltaHendelse)
+                                }
 
+                                is VegobjektVersjonEndret -> {
+                                    hendelseData.endretToDelta(deltaHendelse)
+                                }
+
+                                is VegobjektVersjonFjernet -> {
+                                    hendelseData.fjernetToDelta(deltaHendelse)
+                                }
+
+                                else -> {
+                                    logger.warn("Unknown hendelse type: ${hendelseData::class.simpleName}, skipping")
+                                    null
+                                }
+                            }
+
+                            if (delta != null) {
                                 offer(ProducerRecord(topic, deltaHendelse.vegobjektId, delta))
-
                                 lastHendelseId = deltaHendelse.hendelseId
                                 count++
                             }
                         } catch (e: Exception) {
                             logger.error(
                                 "Error processing hendelse {} for vegobjekt {}: {}",
-                                deltaHendelse.hendelseId, deltaHendelse.vegobjektId, e.message
+                                deltaHendelse.hendelseId, deltaHendelse.vegobjektId, e.message, e
                             )
                             // Continue processing other hendelser
                         }
@@ -251,10 +276,16 @@ class NvdbDataProducer(
                     updatedAt = now()
                 )
                 progressRepository.save(newProgress)
-                logger.info(
-                    "Updates processed for type {}, {} hendelser, last ID = {}",
-                    typeId, count, lastHendelseId
-                )
+                if (!isRunning.get()) {
+                    logger.info("Updates for type {} interrupted by shutdown after {} hendelser", typeId, count)
+                } else {
+                    logger.info(
+                        "Updates processed for type {}, {} hendelser, last ID = {}",
+                        typeId,
+                        count,
+                        lastHendelseId
+                    )
+                }
             } else {
                 logger.debug("No new hendelser for type {}", typeId)
             }
@@ -268,6 +299,49 @@ class NvdbDataProducer(
                 )
             )
         }
+    }
+
+    private fun VegobjektVersjonFjernet.fjernetToDelta(
+        deltaHendelse: VegobjektDeltaHendelse
+    ): VegobjektDelta {
+        val originalVersjon = originalVersjon
+            ?: error("originalVersjon is null for VegobjektVersjonFjernet, hendelseId=${deltaHendelse.hendelseId}, vegobjektId=${deltaHendelse.vegobjektId}")
+
+        val before = toDomain(
+            originalVersjon,
+            deltaHendelse.vegobjektId,
+            deltaHendelse.vegobjektType
+        )
+        return VegobjektDelta(before = before, after = null)
+    }
+
+    private fun VegobjektVersjonEndret.endretToDelta(
+        deltaHendelse: VegobjektDeltaHendelse
+    ): VegobjektDelta {
+        val originalVersjon = originalVersjon
+            ?: error("originalVersjon is null for VegobjektVersjonEndret, hendelseId=${deltaHendelse.hendelseId}, vegobjektId=${deltaHendelse.vegobjektId}")
+
+        val before = toDomain(
+            originalVersjon,
+            deltaHendelse.vegobjektId,
+            deltaHendelse.vegobjektType
+        )
+        val afterVersjon = applyChanges(originalVersjon, this)
+        val after =
+            toDomain(afterVersjon, deltaHendelse.vegobjektId, deltaHendelse.vegobjektType)
+
+        return VegobjektDelta(before = before, after = after)
+    }
+
+    private fun VegobjektVersjonOpprettet.opprettetToDelta(
+        deltaHendelse: VegobjektDeltaHendelse
+    ): VegobjektDelta {
+        val after = toDomain(
+            versjon,
+            deltaHendelse.vegobjektId,
+            deltaHendelse.vegobjektType
+        )
+        return VegobjektDelta(before = null, after = after)
     }
 
     /**
@@ -323,4 +397,55 @@ class NvdbDataProducer(
     fun getStatus(typeId: Int): ProducerProgress? {
         return progressRepository.findByTypeId(typeId)
     }
+
+    private fun shutdown() {
+        logger.info("Initiating graceful shutdown of NvdbDataProducer...")
+        isRunning.set(false)
+
+        val shutdownStartTime = System.currentTimeMillis()
+        val maxWaitMillis = 30000L
+
+        while ((isProcessingType915.get() || isProcessingType916.get()) &&
+            System.currentTimeMillis() - shutdownStartTime < maxWaitMillis
+        ) {
+            logger.info("Waiting for in-flight processing to complete...")
+            Thread.sleep(500)
+        }
+
+        if (isProcessingType915.get() || isProcessingType916.get()) {
+            logger.warn("Shutdown timeout reached, some processing may have been interrupted")
+        } else {
+            logger.info("All in-flight processing completed successfully")
+        }
+
+        logger.info("NvdbDataProducer shutdown complete")
+    }
+
+    // SmartLifecycle implementation for coordinated shutdown with Tomcat
+    override fun start() {
+        logger.info("Starting NvdbDataProducer lifecycle")
+        isRunning.set(true)
+    }
+
+    override fun stop(callback: Runnable) {
+        logger.info("Stopping NvdbDataProducer via SmartLifecycle (async)")
+        Thread {
+            try {
+                shutdown()
+            } finally {
+                callback.run()
+            }
+        }.start()
+    }
+
+    override fun stop() {
+        logger.info("Stopping NvdbDataProducer via SmartLifecycle (sync)")
+        shutdown()
+    }
+
+    override fun isRunning(): Boolean = isRunning.get()
+
+    override fun getPhase(): Int = Integer.MAX_VALUE - 1000
+
+    override fun isAutoStartup(): Boolean = true
 }

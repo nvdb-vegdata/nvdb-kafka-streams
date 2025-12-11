@@ -1,55 +1,89 @@
 # Task Completion Checklist
 
-When completing a task in this project, perform the following checks:
+When a coding task is completed, follow this checklist to ensure quality and correctness:
 
 ## 1. Code Quality
+- [ ] Code follows project conventions (see `code_style_and_conventions.md`)
+- [ ] No unnecessary comments or boilerplate
+- [ ] Self-documenting code with clear naming
+- [ ] Immutability preferred (`val` over `var`)
+- [ ] Null-safety leveraged, no `!!` operators
 
-- [ ] Code follows Kotlin conventions and idioms
-- [ ] Constructor injection is used for dependencies
-- [ ] Public APIs have KDoc documentation
-- [ ] Logging uses SLF4J
-
-## 2. Build and Compilation
-
-- [ ] Run `./gradlew build` to ensure project compiles successfully
-- [ ] Check for any Kotlin compilation errors
-- [ ] Verify IntelliJ IDEA shows no compilation errors (LSP check)
+## 2. Compilation & Type Checking
+- [ ] **Use Kotlin LSP to check for compilation errors** (primary method)
+  - LSP configured via `opencode.json` with `kotlin-lsp --stdio`
+  - Read relevant Kotlin files to trigger LSP diagnostics
+- [ ] Check IntelliJ for compilation errors (may occasionally be out of sync)
+- [ ] Resolve all type errors and warnings
 
 ## 3. Testing
-
-- [ ] Run `./gradlew test` to execute all tests
-- [ ] All tests pass successfully
-- [ ] New functionality has appropriate test coverage
+- [ ] Run tests: `./gradlew test`
+- [ ] All existing tests pass
+- [ ] New tests added if functionality was added/changed
 - [ ] Tests follow Arrange-Act-Assert pattern
-- [ ] Kafka Streams tests use TopologyTestDriver when applicable
+- [ ] Tests assert correct outcomes (not just that we fail)
+- [ ] No test wildcards used (`--tests SpecificTestClass`)
+- [ ] Helper methods used to reduce boilerplate in tests
 
-## 4. Formatting and Style
+## 4. Build Verification
+- [ ] Build succeeds: `./gradlew build`
+- [ ] No deprecation warnings introduced
+- [ ] Generated code up to date (if OpenAPI spec changed)
 
-- [ ] Code follows project style conventions
-- [ ] No unnecessary comments (code should be self-documenting)
-- [ ] Imports are organized properly
+## 5. Runtime Verification (when applicable)
+- [ ] Start Kafka if needed: `docker compose up -d`
+- [ ] Application starts successfully: `./gradlew bootRun`
+- [ ] Health check passes: http://localhost:8080/actuator/health
+- [ ] Swagger UI accessible and reflects changes: http://localhost:8080/swagger-ui.html
+- [ ] Kafka topics created correctly (check Kafka UI: http://localhost:8090)
 
-## 5. Configuration
+## 6. Integration Testing (when applicable)
+- [ ] Test API endpoints with curl or Swagger UI
+- [ ] Verify Kafka messages in Kafka UI
+- [ ] Check SQLite database for expected data
 
-- [ ] Environment variables have sensible defaults
-- [ ] Configuration is externalized where appropriate
-- [ ] Changes to application.yml are reflected in application-test.yml if needed
+## 7. Git & Version Control
+- [ ] Review changes: `git diff`
+- [ ] Stage appropriate files only
+- [ ] **DO NOT include "Generated with Claude Code" or similar in commit messages**
+- [ ] Commit message follows conventional commits style
+- [ ] No unintended files committed (.env, credentials, build artifacts)
 
-## 6. Runtime Verification (if applicable)
+## 8. Documentation
+- [ ] Update README.md if public API or setup changed
+- [ ] Update CLAUDE.md if project-specific instructions changed
+- [ ] Code is self-documenting; comments only where necessary
 
-- [ ] Start Kafka: `docker compose up -d`
-- [ ] Run application: `./gradlew bootRun`
-- [ ] Test relevant endpoints manually if REST API changes were made
-- [ ] Check Kafka UI at http://localhost:8090 if Kafka changes were made
+## 9. Error Handling
+- [ ] Proper error handling implemented
+- [ ] Clear error messages
+- [ ] Errors cleared on success, processing stops on errors
 
-## 7. Documentation
+## 10. Final Review
+- [ ] Changes match the original task requirements
+- [ ] No over-engineering or unnecessary abstractions
+- [ ] Only requested features implemented (no extra "improvements")
+- [ ] If task completion is uncertain, consult with user
 
-- [ ] Update README.md if public API or configuration changes
-- [ ] Update .github/copilot-instructions.md if significant architectural changes
+## Special Considerations
 
-## Notes
+### For Kafka Changes
+- [ ] Topology tested with `NvdbStreamTopologyTest`
+- [ ] Serialization/deserialization works correctly
+- [ ] Topic names and configuration are correct
 
-- If Kotlin LSP is configured via opencode.json, always check for compilation errors using the LSP
-- Never use wildcard (*) in `--tests` parameter
-- If tests fail repeatedly without clear cause, report the issue rather than deleting tests
-- IntelliJ might be out of sync occasionally - don't spend forever fixing it, but make note of it
+### For NVDB API Changes
+- [ ] API client handles rate limiting and errors
+- [ ] Progress tracking updated correctly in SQLite
+- [ ] Batch sizes and schedules are appropriate
+
+### For Configuration Changes
+- [ ] `application.yml` updated
+- [ ] Environment variables documented
+- [ ] Default values are sensible
+
+## Don't Forget
+- If LSP shows errors but you think they're false positives, note it and don't try to fix forever
+- If tests keep failing and you don't understand why, stop and report it
+- When something is unclear, ask for clarification
+- Never delete tests unless explicitly instructed

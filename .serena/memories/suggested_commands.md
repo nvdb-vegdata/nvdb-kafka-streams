@@ -1,99 +1,148 @@
 # Suggested Commands
 
-## Build and Run
+## Build & Run
 
 ### Build the project
 ```bash
 ./gradlew build
 ```
 
-### Run tests
-```bash
-./gradlew test
-```
-
-### Run the application locally
+### Run the application
 ```bash
 ./gradlew bootRun
 ```
 
-### Clean build
+### Run with NVDB producer enabled
 ```bash
-./gradlew clean build
+NVDB_PRODUCER_ENABLED=true ./gradlew bootRun
 ```
 
-## Docker and Infrastructure
+## Testing
 
-### Start local Kafka infrastructure
+### Run all tests
+```bash
+./gradlew test
+```
+
+### Run specific test class (NO wildcards)
+```bash
+./gradlew test --tests NvdbStreamTopologyTest
+```
+
+## Docker & Kafka
+
+### Start local Kafka cluster
 ```bash
 docker compose up -d
 ```
 
-### Stop local Kafka infrastructure
+### Stop Kafka cluster
 ```bash
 docker compose down
 ```
 
 ### View Kafka logs
 ```bash
-docker compose logs -f kafka
+docker logs kafka
 ```
 
-### Access Kafka UI
-Open browser at: http://localhost:8090
-
-## Kafka Topic Management
-
-Topics are auto-created by docker-compose on startup:
-- `nvdb-vegobjekter-raw` (3 partitions)
-- `nvdb-vegobjekter-transformed` (3 partitions)
-- `nvdb-fartsgrenser` (3 partitions)
-
-## Application Endpoints
-
-### Health check
+### Check Kafka container status
 ```bash
-curl http://localhost:8080/actuator/health
+docker ps
 ```
 
-### Get NVDB status
+### Inspect Kafka container
 ```bash
-curl http://localhost:8080/api/nvdb/status
+docker inspect kafka
 ```
 
-### Fetch speed limits (100 records)
+### Execute command in Kafka container
 ```bash
-curl -X POST "http://localhost:8080/api/nvdb/fetch/speedlimits?count=100"
+docker exec kafka [command]
 ```
 
-### Fetch road objects by type
+## API & Documentation
+
+### Access Swagger UI (when running)
+http://localhost:8080/swagger-ui.html
+
+### Access API docs (when running)
+http://localhost:8080/api-docs
+
+### Access Kafka UI (when Docker is running)
+http://localhost:8090
+
+### Check application health
+http://localhost:8080/actuator/health
+
+## Code Generation
+
+### Download and generate NVDB Uberiket API models
 ```bash
-curl -X POST "http://localhost:8080/api/nvdb/fetch/vegobjekter/583?count=100"
+./gradlew generateUberiketApi
 ```
 
-## Git Commands (macOS/Darwin)
+### Just download the OpenAPI spec
+```bash
+./gradlew downloadUberiketSpec
+```
 
-### Standard git operations
+## Gradle Tasks
+
+### List all available tasks
+```bash
+./gradlew tasks
+```
+
+### Clean build artifacts
+```bash
+./gradlew clean
+```
+
+### Build without tests
+```bash
+./gradlew build -x test
+```
+
+## Darwin (macOS) System Commands
+
+### List files
+```bash
+ls -la
+```
+
+### Search in files (use Grep tool instead when possible)
+```bash
+grep -r "pattern" .
+```
+
+### Find files (use Glob tool instead when possible)
+```bash
+find . -name "*.kt"
+```
+
+### View file with line numbers (use Read tool instead)
+```bash
+cat -n file.kt
+```
+
+### Git operations
 ```bash
 git status
-git add .
-git commit -m "message"
-git push
-git pull
-```
-
-### View recent commits
-```bash
 git log --oneline -10
+git diff
 ```
 
-## System Utilities (Darwin/macOS)
+## Development Workflow
 
-- `ls` - List directory contents
-- `cd` - Change directory
-- `grep` - Search text patterns
-- `find` - Find files
-- `cat` - Display file contents
-- `pwd` - Print working directory
+### Standard development cycle
+1. Start Kafka: `docker compose up -d`
+2. Make code changes
+3. Run tests: `./gradlew test`
+4. Run application: `./gradlew bootRun`
+5. Check health: curl http://localhost:8080/actuator/health
 
-Note: macOS uses BSD versions of these utilities, which may have slightly different options than GNU versions.
+### With NVDB producer enabled
+1. Start Kafka: `docker compose up -d`
+2. Run with producer: `NVDB_PRODUCER_ENABLED=true ./gradlew bootRun`
+3. Monitor Kafka UI: http://localhost:8090

@@ -15,12 +15,12 @@ class KotlinxJsonSerializer<T : Any> : Serializer<T> {
 
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     @Suppress("UNCHECKED_CAST")
-    override fun serialize(topic: String?, data: T?): ByteArray? {
-        if (data == null) return null
+    override fun serialize(topic: String?, data: T?): ByteArray {
+        if (data == null) return ByteArray(0)
 
         return try {
             val serializer = serializer(data::class.java)
-            json.encodeToString(serializer, data).toByteArray(Charsets.UTF_8)
+            json.encodeToString(serializer, data).toByteArray()
         } catch (e: Exception) {
             throw SerializationException("Error serializing value of type ${data::class.simpleName}", e)
         }

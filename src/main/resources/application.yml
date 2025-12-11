@@ -10,23 +10,9 @@ spring:
       mode: always
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: no.vegvesen.nvdb.kafka.serialization.KotlinxJsonSerializer
-      acks: all
-      retries: 3
-    consumer:
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      group-id: kafka-at-home-consumer
-      auto-offset-reset: earliest
     streams:
       bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
       application-id: kafka-at-home-streams
-      properties:
-        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
-        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
 
 # Kafka Topics Configuration
 kafka:
@@ -48,12 +34,9 @@ nvdb:
   producer:
     enabled: ${NVDB_PRODUCER_ENABLED:true}
     backfill:
-      batch-size: ${NVDB_BACKFILL_BATCH_SIZE:100}
+      batch-size: ${NVDB_BACKFILL_BATCH_SIZE:1000}
     updates:
-      batch-size: ${NVDB_UPDATES_BATCH_SIZE:100}
-    schedule:
-      type915: ${NVDB_SCHEDULE_TYPE915:60000}  # 1 minute
-      type916: ${NVDB_SCHEDULE_TYPE916:60000}  # 1 minute
+      batch-size: ${NVDB_UPDATES_BATCH_SIZE:1000}
 
 # Logging Configuration
 logging:
@@ -66,6 +49,10 @@ logging:
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
 
 # Management/Actuator endpoints
 management:

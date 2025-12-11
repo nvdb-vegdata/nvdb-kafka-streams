@@ -2,22 +2,14 @@ package no.vegvesen.nvdb.kafka.config
 
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.common.serialization.Serdes
-import org.apache.kafka.streams.StreamsBuilder
-import org.apache.kafka.streams.StreamsConfig
-import org.apache.kafka.streams.kstream.KStream
-import org.apache.kafka.streams.kstream.KTable
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.kafka.annotation.EnableKafkaStreams
-import org.springframework.kafka.annotation.KafkaStreamsDefaultConfiguration
-import org.springframework.kafka.config.KafkaStreamsConfiguration
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.KafkaAdmin
 
 @Configuration
-@EnableKafkaStreams
+//@EnableKafkaStreams
 class KafkaStreamsConfig {
 
     @Value($$"${spring.kafka.streams.bootstrap-servers}")
@@ -32,16 +24,16 @@ class KafkaStreamsConfig {
     @Value($$"${kafka.topics.replicas:1}")
     private var topicReplicas: Int = 1
 
-    @Bean(name = [KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME])
-    fun kafkaStreamsConfig(): KafkaStreamsConfiguration {
-        val props = mutableMapOf<String, Any>()
-        props[StreamsConfig.APPLICATION_ID_CONFIG] = applicationId
-        props[StreamsConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers
-        props[StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
-        props[StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
-        props[StreamsConfig.STATE_DIR_CONFIG] = "/tmp/kafka-streams"
-        return KafkaStreamsConfiguration(props)
-    }
+//    @Bean(name = [KafkaStreamsDefaultConfiguration.DEFAULT_STREAMS_CONFIG_BEAN_NAME])
+//    fun kafkaStreamsConfig(): KafkaStreamsConfiguration {
+//        val props = mutableMapOf<String, Any>()
+//        props[StreamsConfig.APPLICATION_ID_CONFIG] = applicationId
+//        props[StreamsConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers
+//        props[StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
+//        props[StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG] = Serdes.String().javaClass.name
+//        props[StreamsConfig.STATE_DIR_CONFIG] = "/tmp/kafka-streams"
+//        return KafkaStreamsConfiguration(props)
+//    }
 
     @Bean
     fun kafkaAdmin(): KafkaAdmin {
@@ -68,20 +60,20 @@ class KafkaStreamsConfig {
             .build()
     }
 
-    @Bean
-    fun vegsystemTable(builder: StreamsBuilder): KTable<String, String> =
-        builder.table("nvdb-vegobjekter-915")
-
-    @Bean
-    fun strekningTable(builder: StreamsBuilder): KTable<String, String> =
-        builder.table("nvdb-vegobjekter-916")
-
-    @Bean
-    fun vegsystemStream(builder: StreamsBuilder): KStream<String, String> =
-        builder.stream("nvdb-vegobjekter-915")
-
-    @Bean
-    fun strekningStream(builder: StreamsBuilder): KStream<String, String> =
-        builder.stream("nvdb-vegobjekter-916")
+//    @Bean
+//    fun vegsystemTable(builder: StreamsBuilder): KTable<String, String> =
+//        builder.table("nvdb-vegobjekter-915")
+//
+//    @Bean
+//    fun strekningTable(builder: StreamsBuilder): KTable<String, String> =
+//        builder.table("nvdb-vegobjekter-916")
+//
+//    @Bean
+//    fun vegsystemStream(builder: StreamsBuilder): KStream<String, String> =
+//        builder.stream("nvdb-vegobjekter-915")
+//
+//    @Bean
+//    fun strekningStream(builder: StreamsBuilder): KStream<String, String> =
+//        builder.stream("nvdb-vegobjekter-916")
 
 }

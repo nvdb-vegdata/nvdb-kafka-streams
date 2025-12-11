@@ -90,7 +90,7 @@ val generateUberiketApi by tasks.registering(org.openapitools.generator.gradle.p
     dependsOn(downloadUberiketSpec)
 
     inputSpec.set(layout.buildDirectory.file("openapi-specs/uberiket.json").get().asFile.absolutePath)
-    outputDir.set(layout.buildDirectory.dir("generated/openapi/uberiket").get().asFile.absolutePath)
+    outputDir.set(file("src/main/kotlin/generated/openapi/uberiket").absolutePath)
     generatorName.set("kotlin")
     packageName.set("no.vegvesen.nvdb.api.uberiket")
     modelPackage.set("no.vegvesen.nvdb.api.uberiket.model")
@@ -99,7 +99,9 @@ val generateUberiketApi by tasks.registering(org.openapitools.generator.gradle.p
         mapOf(
             "models" to "",
             "apis" to "false",
-            "supportingFiles" to "false"
+            "supportingFiles" to "false",
+            "modelTests" to "false",
+            "modelDocs" to "false"
         )
     )
 
@@ -129,11 +131,7 @@ val generateUberiketApi by tasks.registering(org.openapitools.generator.gradle.p
 sourceSets {
     main {
         java {
-            srcDir("${layout.buildDirectory.get()}/generated/openapi/uberiket/src/main/kotlin")
+            srcDir("src/main/kotlin/generated/openapi/uberiket/src/main/kotlin")
         }
     }
-}
-
-tasks.withType<KotlinCompile> {
-    dependsOn(generateUberiketApi)
 }

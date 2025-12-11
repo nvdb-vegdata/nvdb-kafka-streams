@@ -1,85 +1,96 @@
 # Development Environment
 
-## System Information
+## System Requirements
+- **Operating System**: macOS (Darwin) - currently running on Darwin 24.6.0
+- **Java**: Version 21 or later (JVM toolchain 21)
+- **Docker**: For running local Kafka cluster
+- **Docker Compose**: For orchestrating Kafka and Kafka UI
 
-- **Operating System**: Darwin (macOS)
-- **Platform**: macOS 24.6.0
-- **Java Version**: 17 (JVM toolchain)
-- **Kotlin Version**: 2.2.20
+## IDE Setup
+- **Kotlin LSP**: Configured via `opencode.json` with command `kotlin-lsp --stdio`
+- **File Extensions**: `.kt`, `.kts`
+- **IntelliJ IDEA**: Project uses `.idea` directory for IntelliJ configuration
 
-## IDE Configuration
+## Local Development Setup
 
-### IntelliJ IDEA
-- Project uses IntelliJ IDEA (`.idea/` directory present)
-- Kotlin plugin should be installed
-- Check for compilation errors in IDE before declaring task complete
-
-### Kotlin LSP (if using Opencode)
-- Command: `kotlin-lsp --stdio`
-- Extensions: `.kt`, `.kts`
-- Always use LSP to check for compilation errors
-- Don't rely solely on Gradle compilation
-
-## Git Configuration
-
-- **Current Branch**: main
-- **Main Branch**: main (use for pull requests)
-- **Repository**: Git-initialized at `/Users/geirsagberg/Projects/kafka-at-home`
-
-## Docker Setup
-
-### Kafka Infrastructure
-Docker Compose provides:
-- **Kafka Broker**: Apache Kafka 4.1.1 (KRaft mode, no ZooKeeper)
-  - Exposed on port 9092 (PLAINTEXT_HOST)
-  - Internal port 29092 (PLAINTEXT)
-  - Controller port 9093
-- **Kafka UI**: provectuslabs/kafka-ui
-  - Accessible at http://localhost:8090
-  - Provides topic browsing, message viewing, and cluster monitoring
-- **Kafka Init**: Initializes topics on startup
-
-### Docker Commands
+### 1. Start Kafka Infrastructure
 ```bash
-# Start Kafka cluster
 docker compose up -d
-
-# Stop Kafka cluster
-docker compose down
-
-# View logs
-docker compose logs -f kafka
 ```
+
+This starts:
+- **Apache Kafka 4.1.1** on port 9092 (localhost) and 29092 (internal)
+- **Kafka UI** on port 8090 (http://localhost:8090)
+
+Kafka configuration:
+- Single node KRaft mode (no ZooKeeper)
+- Auto-create topics enabled
+- 5 partitions per topic
+- Compaction enabled with 1-hour segment rotation
+- Replication factor: 1 (single broker)
+
+### 2. Run the Application
+```bash
+./gradlew bootRun
+```
+
+The application starts on port 8080 (configurable via `SERVER_PORT` env var).
+
+### 3. Access Services
+- **Application**: http://localhost:8080
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **Health Check**: http://localhost:8080/actuator/health
+- **Kafka UI**: http://localhost:8090
+- **Metrics**: http://localhost:8080/actuator/metrics
 
 ## Environment Variables
 
-Default values (can be overridden):
-- `KAFKA_BOOTSTRAP_SERVERS`: localhost:9092
-- `NVDB_API_BASE_URL`: https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/
-- `NVDB_PRODUCER_ENABLED`: false
-- `NVDB_PRODUCER_BATCH_SIZE`: 100
-- `NVDB_PRODUCER_INTERVAL_MS`: 3600000 (1 hour)
-- `SERVER_PORT`: 8080
+### Required for Custom Configuration
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker connection |
+| `NVDB_API_BASE_URL` | `https://nvdbapiles.atlas.vegvesen.no/uberiket/api/v1/` | NVDB API endpoint |
+| `NVDB_PRODUCER_ENABLED` | `true` | Enable/disable scheduled data fetching |
+| `SERVER_PORT` | `8080` | Application HTTP port |
+| `SQLITE_DB_PATH` | `./data/kafka-at-home.db` | SQLite database location |
 
-## Gradle Configuration
+### Optional Configuration
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KAFKA_TOPIC_PARTITIONS` | `5` | Number of partitions for created topics |
+| `KAFKA_TOPIC_REPLICAS` | `1` | Replication factor |
+| `KAFKA_TOPICS_READINESS_ENABLED` | `true` | Wait for topics on startup |
+| `NVDB_BACKFILL_BATCH_SIZE` | `100` | Batch size for backfill mode |
+| `NVDB_UPDATES_BATCH_SIZE` | `100` | Batch size for updates mode |
+| `NVDB_SCHEDULE_TYPE915` | `60000` | Schedule interval (ms) for type 915 |
+| `NVDB_SCHEDULE_TYPE916` | `60000` | Schedule interval (ms) for type 916 |
 
-- **Build Tool**: Gradle (Kotlin DSL)
-- **Wrapper Version**: Latest (gradle-wrapper.properties)
-- **Plugins**:
-  - `org.springframework.boot` (4.0.0)
-  - `io.spring.dependency-management` (1.1.7)
-  - `kotlin("jvm")` (2.2.20)
-  - `kotlin("plugin.spring")` (2.2.20)
+## Database
+- **Type**: SQLite (embedded)
+- **Location**: `./data/kafka-at-home.db`
+- **Purpose**: Tracks producer progress (last fetched object IDs, timestamps)
+- **Initialization**: Automatic via Spring `sql.init.mode=always`
 
-## Application Ports
+## Kafka Topics
+The application works with several Kafka topics:
+- `nvdb-vegobjekter-raw` - Raw road object data from NVDB API
+- `nvdb-vegobjekter-transformed` - Transformed/enriched data
+- `nvdb-fartsgrenser` - Speed limit data (filtered)
 
-- **Application Server**: 8080
-- **Kafka Broker**: 9092
-- **Kafka UI**: 8090
-- **Management Endpoints**: 8080/actuator/*
+Topics are auto-created when the application starts (if `KAFKA_TOPICS_READINESS_ENABLED=true`).
 
-## Testing Configuration
+## Testing Environment
+- Tests use **embedded Kafka** broker (no Docker needed for tests)
+- Test configuration: `src/test/resources/application-test.yml`
+- Test database is in-memory or temporary location
 
-- Tests use `application-test.yml` for configuration
-- Embedded Kafka broker for integration tests
-- JUnit 5 platform
+## Build Artifacts
+- Build output: `build/` directory
+- Generated OpenAPI models: `build/generated/openapi/uberiket/`
+- Compiled classes: `build/classes/kotlin/main/`
+- Test reports: `build/reports/tests/`
+
+## Git Repository
+- Current branch: `main`
+- Remote: GitHub repository
+- `.gitignore` excludes build artifacts, IDE files, and data directory
