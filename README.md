@@ -3,6 +3,8 @@
 A Spring Boot 4 application using Kotlin and Kafka Streams to consume and transform road data from the NVDB (Norwegian
 Road Database) Uberiket API.
 
+This is a **proof of concept** application.
+
 ## Overview
 
 The goal of the application is to combine features (vegobjekter) of types 915 Vegsystem and 916 Strekning into
