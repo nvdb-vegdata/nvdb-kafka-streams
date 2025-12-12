@@ -7,7 +7,8 @@ Road Database) Uberiket API.
 
 This application:
 
-- **Consumes** road data from the [NVDB Uberiket API](https://nvdbapiles.atlas.vegvesen.no/swagger-ui/index.html?urls.primaryName=Uberiket+API)
+- **Consumes** road data from
+  the [NVDB Uberiket API](https://nvdbapiles.atlas.vegvesen.no/swagger-ui/index.html?urls.primaryName=Uberiket+API)
 - **Transforms** the data using Kafka Streams
 - **Produces** enriched data to output Kafka topics
 
@@ -62,7 +63,6 @@ The tests use an embedded Kafka broker for integration testing.
 ## Related Projects
 
 - [nvdb-tnits-public](https://github.com/nvdb-vegdata/nvdb-tnits-public) - TN-ITS export from NVDB (reference project)
-- [nvdb-api-client](https://github.com/nvdb-vegdata/nvdb-api-client) - Java client for NVDB API
 
 ## License
 
