@@ -5,12 +5,13 @@ Road Database) Uberiket API.
 
 ## Overview
 
-This application:
+The goal of the application is to combine features (vegobjekter) of types 915 Vegsystem and 916 Strekning into
+"strekningsreferanser", to be able to query for overlapping road links.
 
 - **Consumes** road data from
   the [NVDB Uberiket API](https://nvdbapiles.atlas.vegvesen.no/swagger-ui/index.html?urls.primaryName=Uberiket+API)
 - **Transforms** the data using Kafka Streams
-- **Produces** enriched data to output Kafka topics
+- **Services** endpoints for querying veglenkesekvenser by strekningsreferanse
 
 ### Supported Data Types
 
