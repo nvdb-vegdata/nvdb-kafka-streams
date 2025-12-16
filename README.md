@@ -143,15 +143,15 @@ sequenceDiagram
     
     Aggregate->>Aggregate: Aggregate by veglenkesekvensId<br/>if fjernet: acc - utstrekning<br/>else: acc + utstrekning
     
-    Aggregate->>Join: KTable&lt;Long, Set&lt;VegobjektUtstrekning&gt;&gt;
+    Aggregate->>Join: KTable[Long → Set[VegobjektUtstrekning]]
     
     Join->>Join: Inner join vegsystem & strekning<br/>on veglenkesekvensId
     
-    Note over Join: findOverlappingReferences:<br/>Check spatial overlap<br/>Create Set&lt;StrekningKey&gt;
+    Note over Join: findOverlappingReferences:<br/>Check spatial overlap<br/>Create Set[StrekningKey]
     
-    Join->>Detector: KTable&lt;Long, Set&lt;StrekningKey&gt;&gt;
+    Join->>Detector: KTable[Long → Set[StrekningKey]]
     
-    Detector->>Store: Get previous Set&lt;StrekningKey&gt;<br/>for veglenkesekvensId
+    Detector->>Store: Get previous Set[StrekningKey]<br/>for veglenkesekvensId
     Store-->>Detector: oldKeys
     
     Note over Detector: Compute deltas:<br/>removed = oldKeys - newKeys<br/>added = newKeys - oldKeys
@@ -161,13 +161,13 @@ sequenceDiagram
     
     Detector->>Store: Update state with newKeys
     
-    Detector->>GroupBy: KStream&lt;Long, StrekningReferenceDelta&gt;
+    Detector->>GroupBy: KStream[Long → StrekningReferenceDelta]
     
     GroupBy->>FinalAgg: Group by delta.key<br/>(StrekningKey)
     
     FinalAgg->>FinalAgg: if delta.fjernet:<br/>acc - veglenkesekvensId<br/>else:<br/>acc + veglenkesekvensId
     
-    FinalAgg->>QueryStore: KTable&lt;StrekningKey,<br/>Set&lt;Long&gt;&gt;
+    FinalAgg->>QueryStore: KTable[StrekningKey → Set[Long]]
 ```
 
 ### Key Components
